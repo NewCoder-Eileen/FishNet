@@ -70,6 +70,32 @@ export function subscribeDmMessages(dmId, cb) {
   return () => off(r)
 }
 
+// ── Connections (friend requests) ──
+
+export function sendConnectionRequest(toUserId, toName) {
+  const me = myUserId()
+  if (!me) return
+  const session = getSession()
+  const ts = Date.now()
+  update(ref(db, `connections/${me}/${toUserId}`), { status: 'sent',     ts, toName })
+  update(ref(db, `connections/${toUserId}/${me}`), { status: 'received', ts, fromName: session.username })
+}
+
+export function acceptConnection(fromUserId) {
+  const me = myUserId()
+  if (!me) return
+  update(ref(db, `connections/${me}/${fromUserId}`), { status: 'accepted' })
+  update(ref(db, `connections/${fromUserId}/${me}`), { status: 'accepted' })
+}
+
+export function subscribeConnection(otherUserId, cb) {
+  const me = myUserId()
+  if (!me) { cb(null); return () => {} }
+  const r = ref(db, `connections/${me}/${otherUserId}`)
+  onValue(r, snap => cb(snap.val()))
+  return () => off(r)
+}
+
 export function useUnreadDmCount() {
   const [count, setCount] = useState(0)
   useEffect(() => {
