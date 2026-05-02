@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 import '../App.css'
 
 function getEvents() {
@@ -7,14 +8,14 @@ function getEvents() {
   catch { return {} }
 }
 
-function saveEvent(code) {
+function saveEvent(code, name) {
   const events = getEvents()
-  events[code] = { createdAt: Date.now() }
+  events[code] = { createdAt: Date.now(), name }
   localStorage.setItem('fishnet_events', JSON.stringify(events))
 }
 
-function eventExists(code) {
-  return code in getEvents()
+function getEvent(code) {
+  return getEvents()[code.toUpperCase()] || null
 }
 
 function generateCode() {
@@ -24,26 +25,34 @@ function generateCode() {
 
 export default function JoinEvent() {
   const navigate = useNavigate()
-  const [code, setCode] = useState('')
-  const [error, setError] = useState('')
-  const [createdCode, setCreatedCode] = useState(null)
-  const [copied, setCopied] = useState(false)
+
+  const [joinCode,  setJoinCode]  = useState('')
+  const [joinError, setJoinError] = useState('')
+
+  const [eventName,    setEventName]    = useState('')
+  const [nameError,    setNameError]    = useState('')
+  const [createdCode,  setCreatedCode]  = useState(null)
+  const [createdName,  setCreatedName]  = useState('')
+  const [copied,       setCopied]       = useState(false)
 
   function handleJoin() {
-    const trimmed = code.trim().toUpperCase()
-    if (!trimmed) { setError('Enter a code first'); return }
-    if (eventExists(trimmed)) {
-      navigate(`/event/${trimmed}`)
+    const trimmed = joinCode.trim().toUpperCase()
+    if (!trimmed) { setJoinError('Enter a code first'); return }
+    const event = getEvent(trimmed)
+    if (event) {
+      navigate(`/event/${trimmed}`, { state: { name: event.name } })
     } else {
-      setError('No event found with that code — check it and try again.')
+      setJoinError('No event found — check the code and try again.')
     }
   }
 
   function handleCreate() {
-    const newCode = generateCode()
-    saveEvent(newCode)
-    setCreatedCode(newCode)
-    setError('')
+    if (!eventName.trim()) { setNameError('Give your event a name first'); return }
+    const code = generateCode()
+    saveEvent(code, eventName.trim())
+    setCreatedCode(code)
+    setCreatedName(eventName.trim())
+    setNameError('')
   }
 
   function handleCopy() {
@@ -54,49 +63,69 @@ export default function JoinEvent() {
 
   return (
     <div className="join-page">
+      <Navbar />
       <button className="join-back" onClick={() => navigate('/')}>← Back</button>
 
       <div className="join-container">
 
-        {/* ── Join section ── */}
-        <div className="join-card">
+        {/* ── Enter Code ── */}
+        <div className="join-card join-card-primary">
+          <div className="join-fish-icon">🐟</div>
           <h1 className="join-title">Enter Event Code</h1>
-          <p className="join-desc">Got a code from a friend? Enter it below.</p>
+          <p className="join-desc">Got a code from a friend? Drop it in below.</p>
+
           <input
-            className="join-input"
-            value={code}
-            onChange={e => { setCode(e.target.value.toUpperCase()); setError('') }}
+            className="join-input-big"
+            value={joinCode}
+            onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinError('') }}
             onKeyDown={e => e.key === 'Enter' && handleJoin()}
             placeholder="ABC123"
             maxLength={6}
             autoFocus
+            spellCheck={false}
           />
-          {error && <p className="join-error">{error}</p>}
-          <button className="join-btn-primary" onClick={handleJoin}>
-            Dive In 🐟
+          {joinError && <p className="join-error">{joinError}</p>}
+
+          <button className="join-dive-btn" onClick={handleJoin}>
+            Dive In 🌊
           </button>
         </div>
 
         <div className="join-divider"><span>or</span></div>
 
-        {/* ── Create section ── */}
+        {/* ── Create Event ── */}
         <div className="join-card">
           <h2 className="join-title">Create an Event</h2>
-          <p className="join-desc">Generate a code and share it with your crew.</p>
+          <p className="join-desc">Name your aquarium and share the code with your crew.</p>
 
           {!createdCode ? (
-            <button className="join-btn-create" onClick={handleCreate}>
-              Create Event
-            </button>
+            <>
+              <input
+                className="join-input-name"
+                value={eventName}
+                onChange={e => { setEventName(e.target.value); setNameError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                placeholder="Event name…"
+                maxLength={32}
+              />
+              {nameError && <p className="join-error">{nameError}</p>}
+              <button className="join-btn-create" onClick={handleCreate}>
+                Create Event
+              </button>
+            </>
           ) : (
             <div className="created-wrap">
+              <p className="created-label">Event Name</p>
+              <div className="created-name">{createdName}</div>
+              <p className="created-label" style={{ marginTop: 12 }}>Your Code</p>
               <div className="created-code">{createdCode}</div>
               <button className="copy-btn" onClick={handleCopy}>
                 {copied ? '✓ Copied!' : 'Copy Code'}
               </button>
               <button
-                className="join-btn-primary"
-                onClick={() => navigate(`/event/${createdCode}`)}
+                className="join-dive-btn"
+                style={{ marginTop: 4 }}
+                onClick={() => navigate(`/event/${createdCode}`, { state: { name: createdName } })}
               >
                 Enter Your Aquarium →
               </button>

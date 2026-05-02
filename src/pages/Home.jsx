@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 import '../App.css'
 
-const NAV_LINKS = ['Home', 'Profile', 'Join Event', 'Connect', 'About', 'Privacy']
 const NAV_BUTTONS = [
   { label: 'Profile',    graphic: null },
   { label: 'Join Event', graphic: null },
@@ -60,20 +60,6 @@ function useBubbles() {
   }, [])
 }
 
-function Navbar() {
-  return (
-    <nav className="navbar">
-      <div className="nav-logo">
-        <div className="nav-logo-placeholder">Logo</div>
-      </div>
-      <ul className="nav-links">
-        {NAV_LINKS.map((link) => (
-          <li key={link}><a href={`#${link.toLowerCase().replace(' ', '-')}`}>{link}</a></li>
-        ))}
-      </ul>
-    </nav>
-  )
-}
 
 function Jellyfish({ label, graphic, onClick }) {
   const ref = useFadeIn()
