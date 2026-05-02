@@ -9,6 +9,7 @@ import { getSession } from '../lib/auth'
 import { db } from '../lib/firebase'
 import { drawFish, getStyle } from '../aquarium/fishStyles'
 import { sendEventMessage } from '../lib/chat'
+import { playBubble } from '../lib/audio'
 
 const { width: WORLD_W, height: WORLD_H } = WORLD
 const { maxSpeed: MAX_SPEED, accel: ACCEL, friction: FRICTION } = MOVEMENT
@@ -152,6 +153,7 @@ export default function EventPage() {
   const chatBottomRef = useRef(null)
 
   useEffect(() => {
+    playBubble()
     const t = setTimeout(() => setShowWelcome(false), 3500)
     return () => clearTimeout(t)
   }, [])
