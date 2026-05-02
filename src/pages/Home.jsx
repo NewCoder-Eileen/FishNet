@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import '../App.css'
 
+// Button routes — keep in sync with Navbar.jsx
 const NAV_BUTTONS = [
-  { label: 'Profile',    graphic: null },
-  { label: 'Join Event', graphic: null },
-  { label: 'Connect',    graphic: null },
+  { label: 'Profile',    graphic: null, href: '/#profile'  },
+  { label: 'Join Event', graphic: null, href: '/join'       },
+  { label: 'Connect',    graphic: null, href: '/#connect'   },
 ]
 
 function useFadeIn() {
@@ -60,11 +61,32 @@ function useBubbles() {
   }, [])
 }
 
+function Jellyfish({ label, graphic, href }) {
+  const ref = useRef(null)
+  const navigate = useNavigate()
 
-function Jellyfish({ label, graphic, onClick }) {
-  const ref = useFadeIn()
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('visible') },
+      { threshold: 0.15 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  function handleClick() {
+    if (href.startsWith('/#')) {
+      const id = href.slice(2)
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      navigate(href)
+    }
+  }
+
   return (
-    <button type="button" className="jellyfish fade-up" ref={ref} onClick={onClick}>
+    <button type="button" className="jellyfish fade-up" ref={ref} onClick={handleClick}>
       <div className="jelly-bell">
         <div className="jelly-shine" />
         <div className="jelly-graphic">
@@ -91,12 +113,7 @@ function Section({ className, id, children }) {
 }
 
 export default function Home() {
-  const navigate = useNavigate()
   useBubbles()
-
-  function handleButtonClick(label) {
-    if (label === 'Join Event') navigate('/join')
-  }
 
   return (
     <>
@@ -106,22 +123,56 @@ export default function Home() {
           <div className="hero-logo-placeholder fade-up visible">Your Logo Here</div>
         </section>
 
+        <section className="hero" id="profile" style={{ minHeight: '30vh' }}>
+          {/* Profile section placeholder */}
+        </section>
+
         <Section className="about-section" id="about">
           <h2>About</h2>
           <p>Tell your story here — what is fishnet, who is it for, and what makes it different.</p>
         </Section>
 
+        <section className="about-section fade-up" id="connect" style={{ borderTop: '1px solid rgba(180,150,220,0.2)' }}>
+          <h2 style={{
+            fontSize: 36, marginBottom: 16,
+            background: 'linear-gradient(90deg, #c06090, #7060d0, #40a0d0)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>Connect</h2>
+          <p style={{ color: '#6050a0', fontSize: 17, lineHeight: 1.8 }}>
+            Find friends, join events, and swim together. Connection features coming soon.
+          </p>
+        </section>
+
         <Section className="btn-section" id="join-event">
           <div className="btn-grid">
             {NAV_BUTTONS.map((btn) => (
-              <Jellyfish key={btn.label} {...btn} onClick={() => handleButtonClick(btn.label)} />
+              <Jellyfish key={btn.label} {...btn} />
             ))}
           </div>
         </Section>
 
         <Section className="privacy-section" id="privacy">
           <h2>Privacy</h2>
-          <p>Your privacy policy goes here.</p>
+          <div className="privacy-body">
+            <p className="privacy-tagline">
+              🐟 We promise we&apos;re not evil fish stealing your data.
+            </p>
+            <p>
+              Here&apos;s what we actually collect — and it&apos;s not much:
+            </p>
+            <ul className="privacy-list">
+              <li>🐠 <strong>Your username</strong> — so we know which fish is you in the aquarium.</li>
+              <li>🪸 <strong>Event participation</strong> — so we know which aquarium to drop you into.</li>
+              <li>🫧 <strong>That&apos;s genuinely it.</strong> No tracking, no ads, no shady stuff.</li>
+            </ul>
+            <p>
+              We don&apos;t sell your data. We don&apos;t share it with sharks, third parties, or anyone
+              else. fishnet is a chill zone — your info stays yours.
+            </p>
+            <p className="privacy-footer">
+              Questions? We&apos;re just fish. But friendly ones. 🌊
+            </p>
+          </div>
         </Section>
       </main>
     </>
