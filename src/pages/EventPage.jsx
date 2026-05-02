@@ -112,7 +112,7 @@ export default function EventPage() {
         extra:   me.fish?.extra   || 'none',
       }
 
-      const myId = getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`
+      const myId = (getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`).replace(/\./g, '_')
       console.log('EventPage initialized with myId:', myId, 'code:', code)
 
       const state = {
