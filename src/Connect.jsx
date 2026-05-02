@@ -208,7 +208,11 @@ function Connect() {
   }
 
   function messageFriend(target) {
-    pushToast(`Messaging ${labelOf(target)}… (coming soon)`, 'info')
+    // Open the Messages page with this user's chat preselected. Messages.jsx
+    // reads ?user= as the encoded key and ?name= as the display name.
+    const enc  = encodeKey(target)
+    const name = labelOf(target)
+    navigate(`/messages?user=${enc}&name=${encodeURIComponent(name)}`)
   }
 
   function PersonBubble({ card, shared, status }) {

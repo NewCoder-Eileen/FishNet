@@ -32,6 +32,35 @@ function prettifyKey(k) {
   return k.includes('@') ? k.replace(/_/g, '.') : k
 }
 
+// Same Spotify embed conversion used in Profile.jsx so the visited bowl
+// shows the playlist player identically.
+function extractSpotifyEmbed(rawUrl) {
+  if (!rawUrl) return null
+  try {
+    const url = new URL(rawUrl.trim())
+    if (!/(^|\.)spotify\.com$/.test(url.hostname)) return null
+    const m = url.pathname.match(/^\/(?:embed\/)?(playlist|album|track|artist|episode|show)\/([A-Za-z0-9]+)/)
+    if (!m) return null
+    return `https://open.spotify.com/embed/${m[1]}/${m[2]}`
+  } catch {
+    return null
+  }
+}
+
+// Mirror the SEAWEEDS layout from Profile.jsx so visiting another user's
+// bowl looks like your own — same plant positions, sizes, sway delays.
+const SEAWEEDS = [
+  { src: seaweedA, leftPct: 18, size: 140, bottom: -2, mirror: false, delay: -1.2, op: 0.82 },
+  { src: seaweedB, leftPct: 26, size: 165, bottom: -3, mirror: true,  delay: -2.1, op: 0.88 },
+  { src: seaweedA, leftPct: 34, size: 200, bottom: -4, mirror: false, delay: -3.4, op: 0.92 },
+  { src: seaweedB, leftPct: 44, size: 230, bottom: -5, mirror: false, delay: -3.0, op: 0.94 },
+  { src: seaweedA, leftPct: 52, size: 160, bottom: -3, mirror: true,  delay: -4.5, op: 0.86 },
+  { src: seaweedB, leftPct: 60, size: 215, bottom: -5, mirror: false, delay: -2.8, op: 0.93 },
+  { src: seaweedA, leftPct: 68, size: 175, bottom: -4, mirror: true,  delay: -3.7, op: 0.88 },
+  { src: seaweedB, leftPct: 76, size: 150, bottom: -3, mirror: false, delay: -1.5, op: 0.85 },
+  { src: seaweedA, leftPct: 82, size: 135, bottom: -2, mirror: true,  delay: -4.0, op: 0.82 },
+]
+
 export default function UserProfile() {
   const { username } = useParams()
   const navigate     = useNavigate()
@@ -147,11 +176,11 @@ export default function UserProfile() {
 
   const connectDisabled = connStatus?.status === 'sent' || connStatus?.status === 'accepted'
 
-  // Info dots
+  // Match Profile.jsx so visited bowls feel identical to your own.
   const DOTS = [
-    { id: 'interests', label: 'Interests',   color: 'green', xPct: 0.50, yPct: 0.86 },
-    { id: 'goals',     label: 'Looking For', color: 'blue',  xPct: 0.20, yPct: 0.78 },
-    { id: 'contact',   label: 'Contact',     color: 'blue',  xPct: 0.80, yPct: 0.78 },
+    { id: 'playlist',  label: 'Playlist',  color: 'blue',  xPct: 0.20, yPct: 0.78 },
+    { id: 'interests', label: 'Interests', color: 'green', xPct: 0.50, yPct: 0.86 },
+    { id: 'resume',    label: 'Resume',    color: 'blue',  xPct: 0.80, yPct: 0.78 },
   ]
 
   return (
@@ -163,8 +192,11 @@ export default function UserProfile() {
         <div className="fishbowl-shine" aria-hidden />
         <div className="fishbowl-water-line" aria-hidden />
 
+        {/* Swim the bowl owner's chosen fish — keyed on styleId so the canvas
+            re-mounts the moment the owner picks a new fish in their profile. */}
         <BowlFish
-          styleId={myStyle.id}
+          key={theirStyle.id}
+          styleId={theirStyle.id}
           dots={DOTS}
           onDotEnter={id => setActivePanel(p => p === id ? null : id)}
         />
@@ -190,10 +222,23 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Seaweed */}
-        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-left"  aria-hidden />
-        <img src={seaweedB} alt="" className="bowl-seaweed seaweed-mid"   aria-hidden />
-        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-right" aria-hidden />
+        {/* Seaweed — dense bed of clumps along the bottom (same as Profile.jsx) */}
+        {SEAWEEDS.map((s, i) => (
+          <img
+            key={i}
+            src={s.src}
+            alt=""
+            aria-hidden
+            className={`bowl-seaweed${s.mirror ? ' seaweed-mirror' : ''}`}
+            style={{
+              left:    `${s.leftPct}%`,
+              bottom:  `${s.bottom}%`,
+              width:   s.size,
+              opacity: s.op,
+              animationDelay: `${s.delay}s`,
+            }}
+          />
+        ))}
 
         {/* Sand + rocks */}
         <div className="bowl-sand" aria-hidden />
@@ -217,35 +262,74 @@ export default function UserProfile() {
           </button>
         ))}
 
-        {/* Read-only info panels */}
-        {activePanel === 'interests' && profile.interests?.length > 0 && (
+        {/* Read-only info panels — same sections as Profile.jsx. */}
+        {activePanel === 'playlist' && (
+          <div className="bowl-info-panel">
+            <button className="bowl-info-close" onClick={() => setActivePanel(null)}>×</button>
+            <p className="bowl-info-title">Playlist</p>
+            {profile.spotifyPlaylist ? (
+              extractSpotifyEmbed(profile.spotifyPlaylist) ? (
+                <iframe
+                  title="Spotify playlist preview"
+                  src={extractSpotifyEmbed(profile.spotifyPlaylist)}
+                  width="100%" height="232" frameBorder="0" allowtransparency="true"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  style={{ borderRadius: 12, marginTop: 6 }}
+                />
+              ) : (
+                <a href={profile.spotifyPlaylist} target="_blank" rel="noreferrer" className="link">
+                  {profile.spotifyPlaylist}
+                </a>
+              )
+            ) : <p className="bowl-info-bio">No playlist set.</p>}
+          </div>
+        )}
+        {activePanel === 'interests' && (
           <div className="bowl-info-panel">
             <button className="bowl-info-close" onClick={() => setActivePanel(null)}>×</button>
             <p className="bowl-info-title">Interests</p>
-            <div className="tag-list">
-              {profile.interests.map(t => <span key={t} className="tag-pill" style={{ cursor: 'default' }}>{t}</span>)}
-            </div>
+            {profile.interests?.length > 0
+              ? <div className="tag-list">
+                  {profile.interests.map(t => <span key={t} className="tag-pill" style={{ cursor: 'default' }}>{t}</span>)}
+                </div>
+              : <p className="bowl-info-bio">No interests yet.</p>}
+            {profile.goals?.length > 0 && (
+              <>
+                <p className="bowl-info-title" style={{ marginTop: 12 }}>Looking For</p>
+                <div className="tag-list">
+                  {profile.goals.map(t => <span key={t} className="tag-pill" style={{ cursor: 'default' }}>{t}</span>)}
+                </div>
+              </>
+            )}
+            {profile.bio && (
+              <>
+                <p className="bowl-info-title" style={{ marginTop: 12 }}>About</p>
+                <p className="bowl-info-bio">{profile.bio}</p>
+              </>
+            )}
           </div>
         )}
-        {activePanel === 'goals' && profile.goals?.length > 0 && (
+        {activePanel === 'resume' && (
           <div className="bowl-info-panel">
             <button className="bowl-info-close" onClick={() => setActivePanel(null)}>×</button>
-            <p className="bowl-info-title">Looking For</p>
-            <div className="tag-list">
-              {profile.goals.map(t => <span key={t} className="tag-pill" style={{ cursor: 'default' }}>{t}</span>)}
-            </div>
-          </div>
-        )}
-        {activePanel === 'contact' && (
-          <div className="bowl-info-panel">
-            <button className="bowl-info-close" onClick={() => setActivePanel(null)}>×</button>
-            <p className="bowl-info-title">Contact</p>
-            {profile.bio && <p className="bowl-info-bio">{profile.bio}</p>}
-            {profile.customLinks?.filter(l => l.url).map((l, i) => (
-              <a key={i} href={l.url} target="_blank" rel="noreferrer" className="bowl-contact-chip" style={{ display: 'inline-block', marginTop: 6 }}>
-                {l.label || l.url}
-              </a>
-            ))}
+            <p className="bowl-info-title">Resume</p>
+            {profile.resume
+              ? <a href={profile.resume} target="_blank" rel="noreferrer" className="link">{profile.resume}</a>
+              : <p className="bowl-info-bio">No resume link.</p>}
+            {profile.customLinks?.filter(l => l.url).length > 0 && (
+              <>
+                <p className="bowl-info-title" style={{ marginTop: 12 }}>Other Links</p>
+                <div className="tag-list">
+                  {profile.customLinks.filter(l => l.url).map((l, i) => (
+                    <a key={i} href={l.url} target="_blank" rel="noreferrer"
+                       className="bowl-contact-chip" style={{ display: 'inline-block' }}>
+                      {l.label || l.url}
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

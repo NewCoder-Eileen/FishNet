@@ -130,11 +130,11 @@ export default function Navbar() {
             {loggedIn && (
               <button
                 onClick={() => go('/messages')}
-                className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 transition-colors"
+                className="nav-message-btn"
                 aria-label="Messages"
                 title="Messages"
               >
-                <MessageCircle size={18} className="text-neutral-700" />
+                <MessageCircle size={17} strokeWidth={2.1} />
                 {unreadDms > 0 && (
                   <span className="nav-notif-badge">{unreadDms > 9 ? '9+' : unreadDms}</span>
                 )}
