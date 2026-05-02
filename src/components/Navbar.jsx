@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight, LogOut, Menu, User, MessageCircle } from 'lucide-react'
 import { isLoggedIn, logout, getSession } from '../lib/auth'
 import { useUnreadDmCount } from '../lib/chat'
+import { playChime } from '../lib/audio'
 
 const ACCENT = '#7c5cd8'
 
@@ -65,7 +66,13 @@ export default function Navbar() {
   const loggedIn  = isLoggedIn()
   const session   = loggedIn ? getSession() : null
   const initial   = session?.username?.[0]?.toUpperCase() || '?'
-  const unreadDms = useUnreadDmCount()
+  const unreadDms    = useUnreadDmCount()
+  const prevUnreadRef = useRef(null)
+  useEffect(() => {
+    if (prevUnreadRef.current === null) { prevUnreadRef.current = unreadDms; return }
+    if (unreadDms > prevUnreadRef.current) playChime()
+    prevUnreadRef.current = unreadDms
+  }, [unreadDms])
 
   function go(href) { setOpen(false); setAccountOpen(false); navigate(href) }
   function handleLogout() { setOpen(false); setAccountOpen(false); logout(); navigate('/login') }
