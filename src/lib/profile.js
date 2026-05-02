@@ -8,7 +8,7 @@ export const EMPTY_PROFILE = {
   interests: [],
   goals: [],
   connections: [],
-  fish: { styleId: 'nebula', hat: 'none', glasses: 'none', extra: 'none' },
+  fish: { styleId: 'clownfish' },
 }
 
 export function loadProfile() {

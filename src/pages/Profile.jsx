@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadProfile, saveProfile } from '../lib/profile'
 import { getSession, changeUsername, changeEmail, login, getAccountInfo } from '../lib/auth'
-import { FISH_STYLES, ACCESSORY_OPTIONS, getStyle, drawFish } from '../aquarium/fishStyles'
+import { FISH_STYLES, getStyle, drawFish } from '../aquarium/fishStyles'
 import { MOCK_PROFILES } from '../data/mockProfiles'
 import BubbleBackground from '../components/BubbleBackground'
 import '../App.css'
@@ -46,7 +46,7 @@ function TagInput({ value, onChange, placeholder }) {
   )
 }
 
-function FishPreview({ styleId, hat, glasses, extra, width = 200, height = 110 }) {
+function FishPreview({ styleId, width = 200, height = 110 }) {
   const ref = useRef(null)
   useEffect(() => {
     const canvas = ref.current
@@ -61,29 +61,10 @@ function FishPreview({ styleId, hat, glasses, extra, width = 200, height = 110 }
     drawFish(ctx, {
       x: width / 2, y: height * 0.58, angle: 0, tailPhase: 0.5,
       scale: width / 130,
-      hue: style.hue,
-      accessories: { hat: hat || 'none', glasses: glasses || 'none', extra: extra || 'none' },
+      styleId: style.id,
     })
-  }, [styleId, hat, glasses, extra, width, height])
+  }, [styleId, width, height])
   return <canvas ref={ref} width={width} height={height} className="fish-preview-canvas" />
-}
-
-function AccessoryRow({ label, category, value, onChange }) {
-  const options = ACCESSORY_OPTIONS[category] || []
-  return (
-    <div className="accessory-row">
-      <span className="acc-label">{label}</span>
-      <div className="acc-options">
-        {options.map(opt => (
-          <button key={opt.id} type="button"
-            className={`acc-option${value === opt.id ? ' selected' : ''}`}
-            onClick={() => onChange(opt.id)}>
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 function FishEditModal({ fish, updateFish, onSave, onClose }) {
@@ -94,7 +75,7 @@ function FishEditModal({ fish, updateFish, onSave, onClose }) {
         <h2 className="join-title" style={{ marginBottom: 4 }}>Edit Your Fish</h2>
         <p className="join-desc" style={{ marginBottom: 12 }}>Choose your look in the aquarium.</p>
 
-        <FishPreview styleId={fish.styleId} hat={fish.hat} glasses={fish.glasses} extra={fish.extra} />
+        <FishPreview styleId={fish.styleId} />
 
         <p className="acc-section-label">Style</p>
         <div className="fish-style-grid">
@@ -102,15 +83,18 @@ function FishEditModal({ fish, updateFish, onSave, onClose }) {
             <button key={s.id} type="button"
               className={`fish-style-card${fish.styleId === s.id ? ' selected' : ''}`}
               onClick={() => updateFish('styleId', s.id)}>
-              <div className="fish-style-swatch" style={{ background: `hsl(${s.hue}, 65%, 68%)` }} />
+              <div className="fish-style-swatch">
+                <img
+                  src={s.image}
+                  alt={s.label}
+                  className="fish-style-img"
+                  style={{ transform: s.naturalFacing === 'left' ? 'scaleX(-1)' : 'none' }}
+                />
+              </div>
               <span className="fish-style-label">{s.label}</span>
             </button>
           ))}
         </div>
-
-        <AccessoryRow label="Hat"     category="hat"     value={fish.hat     || 'none'} onChange={v => updateFish('hat', v)} />
-        <AccessoryRow label="Glasses" category="glasses" value={fish.glasses || 'none'} onChange={v => updateFish('glasses', v)} />
-        <AccessoryRow label="Extra"   category="extra"   value={fish.extra   || 'none'} onChange={v => updateFish('extra', v)} />
 
         <button className="join-btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={onSave}>
           Save Changes
@@ -202,7 +186,7 @@ export default function Profile() {
         <div className="profile-fish-header">
           <div className="profile-fish-avatar" onClick={() => setFishEditOpen(true)}
             title="Click to edit your fish">
-            <FishPreview styleId={fish.styleId} hat={fish.hat} glasses={fish.glasses} extra={fish.extra} width={160} height={90} />
+            <FishPreview styleId={fish.styleId} width={160} height={90} />
             <div className="fish-edit-overlay">
               <span className="fish-edit-icon">✏️</span>
               <span className="fish-edit-label">Edit Fish</span>

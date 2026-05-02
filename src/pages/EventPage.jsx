@@ -105,12 +105,8 @@ export default function EventPage() {
     try {
       const me          = loadProfile()
       const style       = getStyle(me.fish?.styleId)
+      const myStyleId   = style.id
       const myHue       = style.hue
-      const myAccessories = {
-        hat:     me.fish?.hat     || 'none',
-        glasses: me.fish?.glasses || 'none',
-        extra:   me.fish?.extra   || 'none',
-      }
 
       const myId = (getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`).replace(/\./g, '_')
 
@@ -118,8 +114,7 @@ export default function EventPage() {
         player: {
           x: WORLD_W / 2, y: WORLD_H / 2,
           vx: 0, vy: 0, angle: 0, tailPhase: 0,
-          hue: myHue, scale: 1.15,
-          accessories: myAccessories,
+          styleId: myStyleId, hue: myHue, scale: 1.15,
           name:      me.name      || 'You',
           interests: me.interests || [],
           goals:     me.goals     || [],
@@ -136,8 +131,8 @@ export default function EventPage() {
       const broadcastId = setInterval(() => {
         set(playerRef, {
           name:        state.player.name,
+          styleId:     state.player.styleId,
           hue:         state.player.hue,
-          accessories: state.player.accessories,
           x:           Math.round(state.player.x),
           y:           Math.round(state.player.y),
           angle:       state.player.angle,

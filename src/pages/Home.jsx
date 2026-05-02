@@ -53,14 +53,21 @@ function useScrollBubbles() {
 
 // ── Ambient bubbles (always floating, not scroll-triggered) ──
 function AmbientBubbles() {
-  const bubbles = useMemo(() => Array.from({ length: 18 }, (_, i) => ({
-    id: i,
-    size:  8  + Math.random() * 28,
-    left:  2  + Math.random() * 96,
-    delay: Math.random() * 12,
-    dur:   8  + Math.random() * 10,
-    drift: (Math.random() - 0.5) * 60,
-  })), [])
+  // Slower and more varied so the rise feels buoyant rather than mechanical.
+  // Tiny bubbles travel a touch faster than large ones (bigger ones get longer durations).
+  const bubbles = useMemo(() => Array.from({ length: 18 }, (_, i) => {
+    const size = 6 + Math.random() * 26
+    return {
+      id: i,
+      size,
+      left:  2 + Math.random() * 96,
+      delay: Math.random() * 18,
+      // 18–34s, with bigger bubbles biased slower
+      dur:   18 + Math.random() * 12 + (size / 32) * 4,
+      drift: (Math.random() - 0.5) * 90,
+      wobble: 14 + Math.random() * 22,
+    }
+  }), [])
 
   return (
     <div className="ambient-bubbles" aria-hidden>
@@ -73,7 +80,8 @@ function AmbientBubbles() {
             left: `${b.left}%`,
             animationDuration: `${b.dur}s`,
             animationDelay: `${b.delay}s`,
-            '--drift': `${b.drift}px`,
+            '--drift':  `${b.drift}px`,
+            '--wobble': `${b.wobble}px`,
           }}
         />
       ))}
@@ -178,36 +186,257 @@ function LightRays() {
   )
 }
 
-// ── Sea plants at the bottom ──
+// ── Sea plants at the bottom ─────────────────────────────────
+// Canvas seaweed for the hero. Three depth layers (bg/mid/fg) with
+// multi-frequency sway, smooth Bézier spines, and pointer-reactive
+// bend + shimmer + drift particles. Tune everything in HERO_SEAWEED.
+const HERO_SEAWEED = {
+  count: 26,
+  canvasHeight: 200,         // px of canvas above the hero bottom edge
+  layers: {
+    bg:  { weight: 0.40, scale: 0.78, alpha: 0.40, sway: 10, speedMul: 0.65, blur: 3,  reactRadius:   0, reactStrength:  0 },
+    mid: { weight: 0.40, scale: 1.00, alpha: 0.85, sway: 16, speedMul: 1.00, blur: 0,  reactRadius: 110, reactStrength: 14 },
+    fg:  { weight: 0.20, scale: 1.20, alpha: 1.00, sway: 22, speedMul: 1.25, blur: 0,  reactRadius: 150, reactStrength: 22 },
+  },
+  hueMin: 135, hueMax: 188,
+  satMin:  32, satMax:  58,
+  lightMin: 38, lightMax: 56,
+  thickMin: 3, thickMax: 7,
+  heightMin: 60, heightMax: 170,
+  segments: 14,
+  agitationDecay: 0.94,
+  bendEase:       0.85,
+  agitationBoost: 1.6,
+  frondAlpha:     0.55,
+  particles: { maxPerPlant: 5, emitChance: 0.18, emitThreshold: 0.35, rise: 0.55 },
+}
+
+function pickHeroLayer() {
+  const keys = Object.keys(HERO_SEAWEED.layers)
+  let r = Math.random()
+  for (const k of keys) {
+    r -= HERO_SEAWEED.layers[k].weight
+    if (r <= 0) return k
+  }
+  return keys[keys.length - 1]
+}
+
+function makeHeroPlants(width) {
+  const w = Math.max(width, 320)
+  return Array.from({ length: HERO_SEAWEED.count }, () => ({
+    x:         20 + Math.random() * (w - 40),
+    height:    HERO_SEAWEED.heightMin + Math.random() * (HERO_SEAWEED.heightMax - HERO_SEAWEED.heightMin),
+    phase:     Math.random() * Math.PI * 2,
+    phase2:    Math.random() * Math.PI * 2,
+    speed:     0.6 + Math.random() * 0.8,
+    hue:       HERO_SEAWEED.hueMin   + Math.random() * (HERO_SEAWEED.hueMax   - HERO_SEAWEED.hueMin),
+    sat:       HERO_SEAWEED.satMin   + Math.random() * (HERO_SEAWEED.satMax   - HERO_SEAWEED.satMin),
+    lightness: HERO_SEAWEED.lightMin + Math.random() * (HERO_SEAWEED.lightMax - HERO_SEAWEED.lightMin),
+    thick:     HERO_SEAWEED.thickMin + Math.random() * (HERO_SEAWEED.thickMax - HERO_SEAWEED.thickMin),
+    layer:     pickHeroLayer(),
+    agitation: 0,
+    bend:      0,
+    particles: [],
+  }))
+}
+
+function drawHeroPlant(ctx, sw, time, baseY) {
+  const cfg = HERO_SEAWEED.layers[sw.layer] || HERO_SEAWEED.layers.mid
+  const swayAmt = cfg.sway * (1 + sw.agitation * HERO_SEAWEED.agitationBoost)
+
+  const segs = HERO_SEAWEED.segments
+  const pts = new Array(segs + 1)
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs
+    const sp = sw.speed * cfg.speedMul
+    const primary   = Math.sin(time * 0.0010 * sp + sw.phase  + t * 2.4) * swayAmt
+    const secondary = Math.sin(time * 0.0017 * sp + sw.phase2 + t * 4.1) * swayAmt * 0.32
+    const bend      = sw.bend * t * t
+    pts[i] = { x: sw.x + (primary + secondary) * t + bend, y: baseY - sw.height * t }
+  }
+
+  ctx.save()
+  ctx.globalAlpha = cfg.alpha
+
+  const topY = baseY - sw.height
+  const grad = ctx.createLinearGradient(0, topY, 0, baseY)
+  grad.addColorStop(0, `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness + 10}%, 0.95)`)
+  grad.addColorStop(1, `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness - 14}%, 0.95)`)
+
+  if (cfg.blur > 0) {
+    ctx.shadowColor = `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness}%, 0.5)`
+    ctx.shadowBlur  = cfg.blur * 2.5
+  }
+  ctx.lineCap     = 'round'
+  ctx.lineJoin    = 'round'
+  ctx.lineWidth   = sw.thick * cfg.scale
+  ctx.strokeStyle = grad
+
+  ctx.beginPath()
+  ctx.moveTo(pts[0].x, pts[0].y)
+  for (let i = 1; i < segs; i++) {
+    const xc = (pts[i].x + pts[i + 1].x) / 2
+    const yc = (pts[i].y + pts[i + 1].y) / 2
+    ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
+  }
+  ctx.lineTo(pts[segs].x, pts[segs].y)
+  ctx.stroke()
+
+  // Fronds
+  ctx.shadowBlur = 0
+  for (let i = 2; i < segs; i += 2) {
+    const p   = pts[i]
+    const dir = (i % 4 === 0) ? 1 : -1
+    const t   = i / segs
+    const lw  = (6 + t * 3) * cfg.scale
+    const lh  = (3 + t * 1.5) * cfg.scale
+    ctx.beginPath()
+    ctx.ellipse(p.x + dir * 6, p.y - 2, lw, lh, dir * (0.3 + t * 0.25), 0, Math.PI * 2)
+    ctx.fillStyle = `hsla(${sw.hue + 6}, ${sw.sat}%, ${sw.lightness - 4}%, ${HERO_SEAWEED.frondAlpha})`
+    ctx.fill()
+  }
+
+  // Shimmer when agitated
+  if (sw.agitation > 0.18) {
+    ctx.globalAlpha = cfg.alpha * sw.agitation * 0.45
+    ctx.lineWidth   = sw.thick * cfg.scale * 2.4
+    ctx.strokeStyle = `hsla(${sw.hue + 18}, 70%, 78%, 0.55)`
+    ctx.shadowColor = `hsla(${sw.hue + 18}, 90%, 72%, 0.85)`
+    ctx.shadowBlur  = 14
+    ctx.beginPath()
+    ctx.moveTo(pts[0].x, pts[0].y)
+    for (let i = 1; i < segs; i++) {
+      const xc = (pts[i].x + pts[i + 1].x) / 2
+      const yc = (pts[i].y + pts[i + 1].y) / 2
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
+    }
+    ctx.lineTo(pts[segs].x, pts[segs].y)
+    ctx.stroke()
+  }
+
+  ctx.restore()
+
+  // Drift particles
+  if (sw.particles.length) {
+    ctx.save()
+    for (let i = sw.particles.length - 1; i >= 0; i--) {
+      const p = sw.particles[i]
+      p.life -= 0.012
+      if (p.life <= 0) { sw.particles.splice(i, 1); continue }
+      p.y -= HERO_SEAWEED.particles.rise
+      p.x += p.drift
+      const a = Math.max(0, Math.min(1, p.life)) * 0.7
+      ctx.fillStyle = `rgba(210, 240, 235, ${a.toFixed(2)})`
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill()
+    }
+    ctx.restore()
+  }
+}
+
+function updateHeroPlants(plants, pointer, baseY) {
+  for (const sw of plants) {
+    const cfg = HERO_SEAWEED.layers[sw.layer] || HERO_SEAWEED.layers.mid
+    sw.agitation *= HERO_SEAWEED.agitationDecay
+    sw.bend      *= HERO_SEAWEED.bendEase
+
+    if (cfg.reactRadius > 0 && pointer.active) {
+      const swMidY = baseY - sw.height * 0.55
+      const dx = pointer.x - sw.x
+      const dy = pointer.y - swMidY
+      const d  = Math.hypot(dx, dy)
+      if (d < cfg.reactRadius) {
+        const inf = 1 - d / cfg.reactRadius
+        if (inf > sw.agitation) sw.agitation = inf
+        const pushDir = -(dx >= 0 ? 1 : -1) * inf
+        sw.bend += pushDir * cfg.reactStrength * 0.18
+        const cap = cfg.reactStrength
+        if (sw.bend >  cap) sw.bend =  cap
+        if (sw.bend < -cap) sw.bend = -cap
+      }
+    }
+
+    const pcfg = HERO_SEAWEED.particles
+    if (sw.agitation > pcfg.emitThreshold && Math.random() < pcfg.emitChance) {
+      if (sw.particles.length >= pcfg.maxPerPlant) sw.particles.shift()
+      sw.particles.push({
+        x:     sw.x + (Math.random() - 0.5) * 16,
+        y:     baseY - sw.height * (0.35 + Math.random() * 0.55),
+        r:     1.2 + Math.random() * 1.6,
+        drift: (Math.random() - 0.5) * 0.35,
+        life:  1.0,
+      })
+    }
+  }
+}
+
 function SeaPlants() {
-  const plants = useMemo(() => Array.from({ length: 18 }, (_, i) => ({
-    id: i,
-    left: 0.5 + i * 5.5 + Math.random() * 4,
-    // wide range so you get tiny sprigs next to tall stalks
-    height: 18 + Math.pow(Math.random(), 1.6) * 120,
-    delay: Math.random() * 3,
-    dur: 2 + Math.random() * 3,
-    hue: 138 + Math.random() * 55,
-    segments: 2 + Math.floor(Math.random() * 3),
-  })), [])
+  const canvasRef = useRef(null)
+  const plantsRef = useRef([])
+  const pointerRef = useRef({ x: 0, y: 0, active: false })
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    let raf = 0
+
+    function resize() {
+      const w = canvas.clientWidth
+      const h = HERO_SEAWEED.canvasHeight
+      canvas.width  = w * dpr
+      canvas.height = h * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      plantsRef.current = makeHeroPlants(w)
+    }
+    resize()
+
+    function onPointerMove(e) {
+      const rect = canvas.getBoundingClientRect()
+      pointerRef.current.x = e.clientX - rect.left
+      pointerRef.current.y = e.clientY - rect.top
+      pointerRef.current.active =
+        pointerRef.current.y > -40 && pointerRef.current.y < HERO_SEAWEED.canvasHeight + 40
+    }
+    function onPointerLeave() { pointerRef.current.active = false }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true })
+    window.addEventListener('pointerleave', onPointerLeave)
+    window.addEventListener('resize', resize)
+
+    function loop(ts) {
+      const w = canvas.clientWidth
+      const h = HERO_SEAWEED.canvasHeight
+      const baseY = h
+      ctx.clearRect(0, 0, w, h)
+
+      updateHeroPlants(plantsRef.current, pointerRef.current, baseY)
+      // Layer order: bg → mid → fg
+      for (const layer of ['bg', 'mid', 'fg']) {
+        for (const sw of plantsRef.current) {
+          if (sw.layer !== layer) continue
+          drawHeroPlant(ctx, sw, ts, baseY)
+        }
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerleave', onPointerLeave)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
 
   return (
-    <div className="sea-plants" aria-hidden>
-      {plants.map(p => (
-        <div
-          key={p.id}
-          className="sea-plant"
-          style={{
-            left: `${p.left}%`,
-            height: p.height,
-            width: 6 + p.height * 0.08,
-            animationDuration: `${p.dur}s`,
-            animationDelay: `${p.delay}s`,
-            background: `linear-gradient(to top, hsla(${p.hue},55%,35%,0.88), hsla(${p.hue+15},60%,52%,0.35))`,
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="sea-plants-canvas"
+      aria-hidden
+      style={{ height: HERO_SEAWEED.canvasHeight }}
+    />
   )
 }
 
@@ -234,8 +463,6 @@ function HeroSection() {
       <div className="hero-center">
         <FloatingLogo />
       </div>
-
-      <SeaPlants />
     </section>
   )
 }
@@ -291,8 +518,6 @@ function Section({ className, id, children }) {
 
 // ── Page ──
 export default function Home() {
-  useScrollBubbles()
-
   return (
     <>
       <Navbar />
@@ -321,20 +546,6 @@ export default function Home() {
           </div>
         </Section>
 
-        <Section className="privacy-section" id="privacy">
-          <h2>Privacy</h2>
-          <div className="privacy-body">
-            <p className="privacy-tagline">🐟 We promise we&apos;re not evil fish stealing your data.</p>
-            <p>Here&apos;s what we actually collect — and it&apos;s not much:</p>
-            <ul className="privacy-list">
-              <li>🐠 <strong>Your username</strong> — so we know which fish is you in the aquarium.</li>
-              <li>🪸 <strong>Event participation</strong> — so we know which aquarium to drop you into.</li>
-              <li>🫧 <strong>That&apos;s genuinely it.</strong> No tracking, no ads, no shady stuff.</li>
-            </ul>
-            <p>We don&apos;t sell your data. We don&apos;t share it with sharks, third parties, or anyone else. fishnet is a chill zone — your info stays yours.</p>
-            <p className="privacy-footer">Questions? We&apos;re just fish. But friendly ones. 🌊</p>
-          </div>
-        </Section>
       </main>
     </>
   )
