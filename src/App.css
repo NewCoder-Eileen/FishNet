@@ -19,16 +19,28 @@
 html, body {
   min-height: 100%;
   margin: 0;
-  /* pastel chalk-wash layers */
+  /* Tropical reef — bright surface, teal mid-water, deep blue base */
   background:
-    radial-gradient(ellipse at 15% 5%,  rgba(255, 210, 230, 0.7) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 10%, rgba(200, 230, 255, 0.65) 0%, transparent 40%),
-    radial-gradient(ellipse at 60% 50%, rgba(220, 200, 255, 0.5) 0%, transparent 45%),
-    radial-gradient(ellipse at 10% 75%, rgba(180, 240, 230, 0.5) 0%, transparent 40%),
-    radial-gradient(ellipse at 90% 85%, rgba(255, 220, 200, 0.45) 0%, transparent 40%),
-    linear-gradient(170deg, #fde8f0 0%, #e8deff 25%, #d6eeff 55%, #dffaf3 80%, #fce8ff 100%);
+    /* surface shimmer blobs */
+    radial-gradient(ellipse at 25% 2%,  rgba(230, 252, 255, 0.85) 0%, transparent 35%),
+    radial-gradient(ellipse at 75% 4%,  rgba(210, 248, 255, 0.75) 0%, transparent 30%),
+    radial-gradient(ellipse at 50% 0%,  rgba(255, 255, 255, 0.55) 0%, transparent 22%),
+    /* caustic shimmer mid-left */
+    radial-gradient(ellipse at 15% 35%, rgba(100, 210, 235, 0.25) 0%, transparent 40%),
+    /* purple coral hint at bottom */
+    radial-gradient(ellipse at 50% 100%, rgba(140, 120, 190, 0.35) 0%, transparent 40%),
+    /* main water gradient */
+    linear-gradient(180deg,
+      #d0f4fa 0%,
+      #8dd4e8 12%,
+      #42a8c8 30%,
+      #2a88aa 52%,
+      #1e6888 72%,
+      #164e70 88%,
+      #0e3850 100%
+    );
   background-attachment: fixed;
-  color: #2a1a5e;
+  color: #0e2a3a;
   font-family: system-ui, sans-serif;
   overflow-x: hidden;
 }
@@ -60,9 +72,9 @@ html, body {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: 64px;
-  background: rgba(255, 240, 250, 0.55);
+  background: rgba(18, 80, 110, 0.45);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(200, 170, 220, 0.25);
+  border-bottom: 1px solid rgba(100, 210, 240, 0.2);
   display: flex;
   align-items: center;
   padding: 0 32px;
@@ -87,12 +99,12 @@ html, body {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: rgba(200, 170, 255, 0.25);
-  border: 1px solid rgba(180, 150, 255, 0.4);
+  background: rgba(100, 210, 240, 0.2);
+  border: 1px solid rgba(120, 220, 248, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9070c0;
+  color: #a0dff0;
   font-size: 11px;
 }
 
@@ -105,13 +117,13 @@ html, body {
 }
 
 .nav-links a {
-  color: #7050a0;
+  color: #a8dff0;
   text-decoration: none;
   font-size: 15px;
   transition: color 0.2s;
 }
 
-.nav-links a:hover { color: #2a1a5e; }
+.nav-links a:hover { color: #e8f8ff; }
 
 /* ── Main ── */
 main {
@@ -147,8 +159,9 @@ main {
   top: 0;
   height: 100%;
   background: linear-gradient(to bottom,
-    rgba(180, 240, 255, 0.9) 0%,
-    rgba(140, 210, 255, 0.3) 40%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(200, 240, 255, 0.25) 35%,
+    rgba(140, 210, 240, 0.08) 65%,
     transparent 100%
   );
   transform-origin: top center;
@@ -355,7 +368,7 @@ main {
 .privacy-section h2 {
   font-size: 36px;
   margin-bottom: 16px;
-  background: linear-gradient(90deg, #c06090, #7060d0, #40a0d0);
+  background: linear-gradient(90deg, #a0eeff, #60c8e8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -363,7 +376,7 @@ main {
 
 .about-section p,
 .privacy-section p {
-  color: #6050a0;
+  color: #c0e8f5;
   font-size: 17px;
   line-height: 1.8;
 }
@@ -471,7 +484,7 @@ main {
 .jelly-label {
   font-size: 15px;
   font-weight: 700;
-  color: #5030a0;
+  color: #0e3850;
   letter-spacing: 0.03em;
 }
 
@@ -525,7 +538,7 @@ main {
 
 .privacy-body {
   text-align: left;
-  color: #5a3a90;
+  color: #c0e8f5;
   font-size: 16px;
   line-height: 1.8;
   display: flex;
@@ -538,7 +551,7 @@ main {
 .privacy-tagline {
   font-size: 19px;
   font-weight: 700;
-  color: #4a2a80;
+  color: #e0f6ff;
   text-align: center;
 }
 
@@ -552,15 +565,15 @@ main {
 }
 
 .privacy-list li {
-  background: rgba(200, 170, 255, 0.12);
-  border: 1px solid rgba(180, 150, 255, 0.2);
+  background: rgba(80, 180, 220, 0.15);
+  border: 1px solid rgba(100, 210, 240, 0.25);
   border-radius: 12px;
   padding: 12px 18px;
 }
 
 .privacy-footer {
   text-align: center;
-  color: #8060b0;
+  color: #90d0e8;
   font-style: italic;
 }
 
