@@ -274,6 +274,7 @@ export default function Profile() {
   const [accountOpen, setAccountOpen]   = useState(false)
   const [savedFlash, setSavedFlash]     = useState(false)
   const hintRef      = useRef(null)
+  const bowlFishRef  = useRef(null)
   const lastDotEnterRef = useRef(0)
   const profileRef   = useRef(profile)   // always mirrors latest profile
 
@@ -339,6 +340,7 @@ export default function Profile() {
 
         {/* Fish swimming — controllable with WASD / arrows, fills entire bowl */}
         <BowlFish
+          ref={bowlFishRef}
           styleId={fish.styleId}
           dots={DOTS}
           onDotEnter={handleDotEnter}
@@ -433,6 +435,9 @@ export default function Profile() {
 
         {/* Bottom toolbar */}
         <div className="bowl-toolbar">
+          <button className="glass-btn" onClick={() => bowlFishRef.current?.feed()} title="Drop fish food into the bowl">
+            🍤 Feed
+          </button>
           <button className="glass-btn" onClick={() => setAccountOpen(true)}>⚙ Account</button>
         </div>
 

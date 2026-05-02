@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { getStyle, drawFish } from '../aquarium/fishStyles'
 
 export function FishPreview({ styleId, width = 84, height = 84 }) {
@@ -21,10 +21,40 @@ export function FishPreview({ styleId, width = 84, height = 84 }) {
   return <canvas ref={ref} style={{ width, height, display: 'block' }} aria-hidden />
 }
 
-export function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
+export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDotEnter, hintRef }, ref) {
   const canvasRef = useRef(null)
   const keysRef   = useRef({})
+  const foodRef   = useRef([])
+  const sparksRef = useRef([])
+  const sizeRef   = useRef({ W: 0, H: 0 })
+
   const ACCEL = 0.48, FRICTION = 0.91, MAX_V = 4.6
+  const SEEK  = 0.18                  // food-pull strength (player ACCEL still wins)
+  const EAT_R = 14                    // bite radius in px
+  const MAX_FOOD = 18
+
+  useImperativeHandle(ref, () => ({
+    feed: () => {
+      const { W, H } = sizeRef.current
+      if (!W || !H) return
+      const cx = W / 2
+      const count = 4 + Math.floor(Math.random() * 3)
+      for (let i = 0; i < count; i++) {
+        foodRef.current.push({
+          x:  cx + (Math.random() - 0.5) * W * 0.32,
+          y:  H * 0.08 + Math.random() * 12,
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: 0.25 + Math.random() * 0.25,
+          r:  3 + Math.random() * 1.6,
+          life: 0,
+          settled: false,
+        })
+      }
+      if (foodRef.current.length > MAX_FOOD) {
+        foodRef.current = foodRef.current.slice(-MAX_FOOD)
+      }
+    }
+  }), [])
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -52,6 +82,7 @@ export function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
       const W = canvas.clientWidth, H = canvas.clientHeight
       canvas.width = W * dpr; canvas.height = H * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      sizeRef.current = { W, H }
       return { W, H }
     }
     let { W, H } = resize()
@@ -62,17 +93,71 @@ export function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
 
     function loop() {
       ctx.clearRect(0, 0, W, H)
+
+      const cx = W / 2, cy = H / 2, rx = W * 0.46, ry = H * 0.46
+      const sandTop = H * 0.79
+
+      // ── Food physics ──
+      const food = foodRef.current
+      for (let i = food.length - 1; i >= 0; i--) {
+        const p = food[i]
+        if (p.settled) {
+          p.life += 1
+          if (p.life > 360) { food.splice(i, 1); continue }
+        } else {
+          p.vy += 0.014        // gentle gravity
+          p.vy *= 0.985        // water drag
+          p.vx *= 0.97
+          p.x  += p.vx
+          p.y  += p.vy
+          if (p.y >= sandTop) { p.y = sandTop; p.vy = 0; p.vx *= 0.5; p.settled = true }
+          const ex = (p.x - cx) / rx, ey = (p.y - cy) / ry, er = Math.hypot(ex, ey)
+          if (er > 1) {
+            p.x = cx + (ex / er) * rx
+            p.y = cy + (ey / er) * ry
+            p.vx *= -0.3
+          }
+        }
+      }
+
+      // ── Player input ──
       const k = keysRef.current
       if (k['ArrowLeft']  || k['a'] || k['A']) fish.vx -= ACCEL
       if (k['ArrowRight'] || k['d'] || k['D']) fish.vx += ACCEL
       if (k['ArrowUp']    || k['w'] || k['W']) fish.vy -= ACCEL
       if (k['ArrowDown']  || k['s'] || k['S']) fish.vy += ACCEL
+
+      // ── Seek nearest pellet & eat on contact ──
+      let nearest = null, nearestDist = Infinity, nearestIdx = -1
+      for (let i = 0; i < food.length; i++) {
+        const p = food[i]
+        const d = Math.hypot(p.x - fish.x, p.y - fish.y)
+        if (d < nearestDist) { nearestDist = d; nearest = p; nearestIdx = i }
+      }
+      if (nearest) {
+        const dx = nearest.x - fish.x, dy = nearest.y - fish.y
+        const d  = Math.hypot(dx, dy) || 0.001
+        fish.vx += (dx / d) * SEEK
+        fish.vy += (dy / d) * SEEK
+        if (d < EAT_R) {
+          // sparkle on bite
+          for (let s = 0; s < 4; s++) {
+            sparksRef.current.push({
+              x: nearest.x, y: nearest.y,
+              vx: (Math.random() - 0.5) * 1.4,
+              vy: -Math.random() * 1.0,
+              life: 1.0,
+            })
+          }
+          food.splice(nearestIdx, 1)
+        }
+      }
+
       fish.vx *= FRICTION; fish.vy *= FRICTION
       const v = Math.hypot(fish.vx, fish.vy)
       if (v > MAX_V) { fish.vx = (fish.vx / v) * MAX_V; fish.vy = (fish.vy / v) * MAX_V }
       fish.x += fish.vx; fish.y += fish.vy
 
-      const cx = W / 2, cy = H / 2, rx = W * 0.46, ry = H * 0.46
       const ex = (fish.x - cx) / rx, ey = (fish.y - cy) / ry, er = Math.hypot(ex, ey)
       if (er > 1) {
         fish.x = cx + (ex / er) * rx; fish.y = cy + (ey / er) * ry
@@ -82,7 +167,32 @@ export function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
 
       if (v > 0.15) fish.angle = Math.atan2(fish.vy, fish.vx)
       fish.tailPhase += 0.08 + v * 0.04
+
+      // ── Draw food (under fish) ──
+      for (const p of food) {
+        const wobble = p.settled ? 0 : Math.sin((p.x + p.y) * 0.04) * 0.6
+        ctx.save()
+        ctx.fillStyle = '#5a3318'
+        ctx.beginPath(); ctx.arc(p.x + wobble, p.y, p.r, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = '#a0683a'
+        ctx.beginPath(); ctx.arc(p.x + wobble - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.42, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
+      }
+
       drawFish(ctx, fish)
+
+      // ── Sparkle particles (eat feedback) ──
+      const sparks = sparksRef.current
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i]
+        s.x += s.vx; s.y += s.vy; s.vy += 0.05; s.life -= 0.05
+        if (s.life <= 0) { sparks.splice(i, 1); continue }
+        ctx.save()
+        ctx.globalAlpha = Math.max(s.life, 0)
+        ctx.fillStyle = 'rgba(255, 250, 220, 0.95)'
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1.6, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
+      }
 
       const pp = propsRef.current
       for (const d of pp.dots) {
@@ -103,4 +213,4 @@ export function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
   }, [styleId])
 
   return <canvas ref={canvasRef} className="bowl-fish-canvas" aria-hidden />
-}
+})

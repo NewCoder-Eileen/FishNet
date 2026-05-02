@@ -131,12 +131,14 @@ function Connect() {
       })
       .filter(Boolean)
       .filter(b => b.status !== 'friend')
-      .filter(b => b.shared.length > 0 || b.status === 'pending_in')
       .sort((a, b) => {
+        // Incoming requests bubble to the top, then most shared tags first,
+        // then alphabetical by display name so the order is stable.
         const aIn = a.status === 'pending_in' ? 1 : 0
         const bIn = b.status === 'pending_in' ? 1 : 0
         if (aIn !== bIn) return bIn - aIn
-        return b.shared.length - a.shared.length
+        if (a.shared.length !== b.shared.length) return b.shared.length - a.shared.length
+        return a.card.displayName.localeCompare(b.card.displayName)
       })
   }, [accounts, relations, myUsername, myTags])
 
@@ -281,14 +283,11 @@ function Connect() {
         <section className="connect-section">
           <div className="connect-tank-wrap">
             <header className="tank-header">
-              <h2>Your Pod</h2>
+              <h2>The Pod</h2>
               <p>
-                Bubbles are people who share your tags. Tap{' '}
+                Everyone on FishNet, floating around. Tap{' '}
                 <span className="inline-plus" aria-hidden>+</span> to send a connect request.
               </p>
-              {myTags.size === 0 && (
-                <p className="tank-hint">Add interests or goals on your profile to surface matches.</p>
-              )}
               {incomingCount > 0 && (
                 <p className="tank-hint incoming">
                   {incomingCount} {incomingCount === 1 ? 'person wants' : 'people want'} to connect — pink bubbles.
@@ -299,7 +298,7 @@ function Connect() {
             <div className="bubble-tank">
               {bubbles.length === 0 ? (
                 <div className="tank-empty">
-                  No matches yet. When someone with similar tags joins FishNet, they'll bubble up here.
+                  Nobody else here yet. New FishNet members will bubble up as they join.
                 </div>
               ) : (
                 bubbles.map(b => (
