@@ -5,6 +5,12 @@ import { isLoggedIn, logout, getSession } from '../lib/auth'
 
 const ACCENT = '#7c5cd8'
 
+// Show the username as-is when it looks like an email; otherwise prefix with @.
+function fmtHandle(username) {
+  if (!username) return '@guest'
+  return username.includes('@') ? username : `@${username}`
+}
+
 const NAV_ITEMS = [
   { label: 'Home',    href: '/' },
   { label: 'Connect', href: '/connect' },
@@ -90,20 +96,19 @@ export default function Navbar() {
           }}
         >
           {/* Desktop nav — left-aligned, account cluster stays on the right */}
-          <nav className="hidden md:flex items-center gap-6 text-[14px] text-neutral-800 ml-2">
+          <nav className="hidden md:flex items-center gap-1 text-[14px] text-neutral-800 ml-2">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.label}
                 onClick={() => go(item.href)}
-                className="hover:text-neutral-950"
+                className="nav-tab"
               >
                 {item.label}
               </button>
             ))}
             <button
               onClick={() => setShowPrivacy(true)}
-              className="hover:opacity-80 inline-flex items-center gap-1.5"
-              style={{ color: ACCENT }}
+              className="nav-tab nav-tab-accent inline-flex items-center gap-1.5"
             >
               Privacy
               <ChevronDown size={14} color={ACCENT} strokeWidth={2} />
@@ -118,11 +123,11 @@ export default function Navbar() {
                   onClick={() => setAccountOpen(o => !o)}
                   className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 py-1 text-[13px] sm:text-[14px] text-white"
                   style={{ backgroundColor: ACCENT }}
-                  title={`@${session?.username}`}
+                  title={fmtHandle(session?.username)}
                   aria-expanded={accountOpen}
                   aria-haspopup="menu"
                 >
-                  <span className="hidden sm:inline">@{session?.username}</span>
+                  <span className="hidden sm:inline">{fmtHandle(session?.username)}</span>
                   <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/25 font-bold">
                     {initial}
                   </span>

@@ -391,11 +391,6 @@ function Jellyfish({ label, graphic, href }) {
         <div className="jelly-graphic">{graphic && <img src={graphic} alt="" />}</div>
         <span className="jelly-label">{label}</span>
       </div>
-      <div className="jelly-tentacles">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="tentacle" style={{ '--i': i }} />
-        ))}
-      </div>
     </button>
   )
 }
@@ -409,33 +404,63 @@ function Section({ className, id, children }) {
   )
 }
 
+// ── Caustic light overlay (animated soft streaks) ──
+function Caustics() {
+  return (
+    <>
+      <div className="aquarium-caustics layer-a" aria-hidden />
+      <div className="aquarium-caustics layer-b" aria-hidden />
+    </>
+  )
+}
+
+// ── Tiny bokeh particles drifting upward ──
+function FloatingParticles({ count = 60 }) {
+  const particles = useMemo(() => Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size:  1.2 + Math.random() * 4.2,
+    left:  Math.random() * 100,
+    delay: -Math.random() * 36,
+    dur:   22 + Math.random() * 32,
+    drift: (Math.random() - 0.5) * 80,
+    blur:  0.4 + Math.random() * 1.6,
+    op:    0.35 + Math.random() * 0.55,
+  })), [count])
+
+  return (
+    <div className="aquarium-particles" aria-hidden>
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className="aquarium-particle"
+          style={{
+            width:  p.size,
+            height: p.size,
+            left:   `${p.left}%`,
+            filter: `blur(${p.blur}px)`,
+            animationDuration: `${p.dur}s`,
+            animationDelay:    `${p.delay}s`,
+            '--pdrift':   `${p.drift}px`,
+            '--popacity': p.op,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ── Page ──
 export default function Home() {
   return (
-    <>
+    <div className="home-aquarium-page">
+      <Caustics />
+      <FloatingParticles />
       <Navbar />
       <main>
         <HeroSection />
 
-        <section className="about-section fade-up" id="connect">
-          <h2 style={{
-            fontSize: 36, marginBottom: 16,
-            background: 'linear-gradient(90deg, #c06090, #7060d0, #40a0d0)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>Connect</h2>
-          <p style={{ color: '#6050a0', fontSize: 17, lineHeight: 1.8 }}>
-            Find friends, join events, and swim together. Connection features coming soon.
-          </p>
-        </section>
-
-        <Section className="btn-section" id="join-event">
-          <div className="btn-grid">
-            {NAV_BUTTONS.map(btn => <Jellyfish key={btn.label} {...btn} />)}
-          </div>
-        </Section>
-
         <Section className="about-section" id="about">
-          <h2 className="about-title">About</h2>
+          <h2 className="about-title">About FishNet</h2>
           <div className="about-cards">
             <div className="about-card">
               <h3>Who is this for?</h3>
@@ -452,7 +477,15 @@ export default function Home() {
           </div>
         </Section>
 
+        <Section className="btn-section" id="quick-actions">
+          <h2 className="quick-actions-title">Dive in</h2>
+          <p className="quick-actions-sub">Tap a jellyfish to swim in.</p>
+          <div className="btn-grid">
+            {NAV_BUTTONS.map(btn => <Jellyfish key={btn.label} {...btn} />)}
+          </div>
+        </Section>
+
       </main>
-    </>
+    </div>
   )
 }
