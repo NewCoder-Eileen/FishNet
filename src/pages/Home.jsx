@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar'
 import '../App.css'
 
 const NAV_BUTTONS = [
-  { label: 'Profile',    graphic: null, href: '/#profile'  },
+  { label: 'Profile',    graphic: null, href: '/profile'  },
   { label: 'Join Event', graphic: null, href: '/join'       },
   { label: 'Connect',    graphic: null, href: '/#connect'   },
 ]
@@ -283,8 +283,6 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-
-        <section id="profile" style={{ height: 1 }} />
 
         <Section className="about-section" id="about">
           <h2>About</h2>

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 
 const NAV_LINKS = [
   { label: 'Home',       href: '/' },
-  { label: 'Profile',    href: '/#profile' },
+  { label: 'Profile',    href: '/profile' },
   { label: 'Join Event', href: '/join' },
   { label: 'Connect',    href: '/#connect' },
   { label: 'About',      href: '/#about' },
