@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import BubbleBackground from '../components/BubbleBackground'
 import { getSession, subscribeAccounts } from '../lib/auth'
@@ -134,6 +135,8 @@ export default function Friends() {
   const session    = getSession()
   const myUsername = session?.username || ''
   const myEncKey   = encodeKey(myUsername)
+  const navigate   = useNavigate()
+  const visitBowl  = (encKey) => navigate(`/user/${encKey}`)
 
   const [accountsMap, setAccountsMap] = useState({})
   const [profilesMap, setProfilesMap] = useState({})
@@ -249,11 +252,13 @@ export default function Friends() {
 
   function SearchRow({ card }) {
     const status = statusOf(card.encKey)
+    const bowlBtn = <button className="glass-btn small" onClick={() => visitBowl(card.encKey)}>🐠 Bowl</button>
     let actions
     if (status === 'friend') {
       actions = (
         <>
           <span className="added-pill">Friends ✓</span>
+          {bowlBtn}
           <button className="glass-btn small" onClick={() => setChatWith(card)}>Message</button>
         </>
       )
@@ -261,6 +266,7 @@ export default function Friends() {
       actions = (
         <>
           <span className="pending-pill">Sent</span>
+          {bowlBtn}
           <button className="glass-btn small" onClick={() => cancel(card.encKey)}>Cancel</button>
         </>
       )
@@ -269,10 +275,16 @@ export default function Friends() {
         <>
           <button className="glass-btn small primary" onClick={() => accept(card.encKey)}>Accept</button>
           <button className="glass-btn small"         onClick={() => decline(card.encKey)}>Decline</button>
+          {bowlBtn}
         </>
       )
     } else {
-      actions = <button className="glass-btn small primary" onClick={() => send(card.username)}>Add Friend</button>
+      actions = (
+        <>
+          <button className="glass-btn small primary" onClick={() => send(card.username)}>Add Friend</button>
+          {bowlBtn}
+        </>
+      )
     }
     return <PersonRow card={card} actions={actions} />
   }
@@ -356,6 +368,7 @@ export default function Friends() {
                           <>
                             <button className="glass-btn small primary" onClick={() => accept(encKey)}>Accept</button>
                             <button className="glass-btn small"         onClick={() => decline(encKey)}>Decline</button>
+                            <button className="glass-btn small"         onClick={() => visitBowl(encKey)}>🐠 Bowl</button>
                           </>
                         )}
                       />
@@ -383,6 +396,7 @@ export default function Friends() {
                           card={card}
                           actions={(
                             <>
+                              <button className="glass-btn small"        onClick={() => visitBowl(encKey)}>🐠 Bowl</button>
                               <button className="glass-btn small"        onClick={() => setChatWith(card)}>Message</button>
                               <button className="glass-btn small danger" onClick={() => remove(encKey)}>Remove</button>
                             </>
@@ -408,7 +422,12 @@ export default function Friends() {
                       <PersonRow
                         key={encKey}
                         card={{ ...card, description: 'waiting for response…' }}
-                        actions={<button className="glass-btn small" onClick={() => cancel(encKey)}>Cancel</button>}
+                        actions={(
+                          <>
+                            <button className="glass-btn small" onClick={() => visitBowl(encKey)}>🐠 Bowl</button>
+                            <button className="glass-btn small" onClick={() => cancel(encKey)}>Cancel</button>
+                          </>
+                        )}
                       />
                     )
                   })}

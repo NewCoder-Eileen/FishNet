@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import BubbleBackground from './components/BubbleBackground'
 import { getSession, subscribeAccounts } from './lib/auth'
@@ -63,6 +64,8 @@ function prettifyKey(k) {
 function Connect() {
   const session    = getSession()
   const myUsername = session?.username || ''
+  const navigate   = useNavigate()
+  const visitBowl  = (u) => navigate(`/user/${encodeKey(u)}`)
 
   // Live state mirrored from Firebase.
   const [accountsMap, setAccountsMap] = useState({})  // { keyEncoded: { username, password, email } }
@@ -382,6 +385,7 @@ function Connect() {
                   )}
                 </div>
                 <div className="modal-actions">
+                  <button className="glass-btn" onClick={() => visitBowl(selectedFriend.username)}>Visit Bowl</button>
                   {(() => {
                     const status = myRelations[encodeKey(selectedFriend.username)]
                     if (status === 'friend')      return <span className="added-pill">Friends ✓</span>

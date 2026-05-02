@@ -18,10 +18,23 @@ const SOCIALS = [
   { key: 'email',    label: 'Email'    },
 ]
 
+// Same encoding used everywhere else (auth/profiles/relations).
+function encodeKey(k) {
+  return (k || '').toLowerCase().replace(/[.#$[\]/]/g, '_')
+}
+function prettifyKey(k) {
+  if (!k) return ''
+  return k.includes('@') ? k.replace(/_/g, '.') : k
+}
+
 export default function UserProfile() {
-  const { username } = useParams()
+  const { username: urlParam } = useParams()
   const navigate     = useNavigate()
   const location     = useLocation()
+
+  // The URL param is the encoded user key (so emails-as-usernames don't break
+  // routing). Re-encode defensively in case anything passes a raw username.
+  const userKey      = encodeKey(urlParam)
 
   const seed = location.state?.user || {}
   const [profile, setProfile] = useState({
@@ -33,6 +46,7 @@ export default function UserProfile() {
     customLinks: seed.customLinks || [],
     fish:        seed.fish        || {},
   })
+  const [account,      setAccount]      = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [activePanel,  setActivePanel]  = useState(null)
 
@@ -48,15 +62,21 @@ export default function UserProfile() {
   // Their fish style (shown statically in the id card)
   const theirStyle = getStyle(profile.fish?.styleId)
 
+  // Display handle: prefer the original casing from /accounts, fall back to a
+  // prettified version of the encoded key (so emails render with dots).
+  const displayHandle = account?.username || prettifyKey(userKey)
+
   useEffect(() => {
-    const profileRef = ref(db, `profiles/${username}`)
-    const unsub = onValue(profileRef, snap => {
+    const profileRef = ref(db, `profiles/${userKey}`)
+    const unsubP = onValue(profileRef, snap => {
       const data = snap.val()
       if (data) setProfile(p => ({ ...p, ...data }))
       setLoading(false)
     })
-    return () => unsub()
-  }, [username])
+    const accountRef = ref(db, `accounts/${userKey}`)
+    const unsubA = onValue(accountRef, snap => setAccount(snap.val()))
+    return () => { unsubP(); unsubA() }
+  }, [userKey])
 
   // Info dots — same positions as Profile.jsx but read-only
   const DOTS = [
@@ -88,7 +108,7 @@ export default function UserProfile() {
           </div>
           <div className="bowl-id-text">
             <div className="bowl-username-row">
-              <p className="bowl-username">@{username}</p>
+              <p className="bowl-username">@{displayHandle}</p>
             </div>
             {profile.name && <p className="bowl-display-name">{profile.name}</p>}
             <div className="bowl-contact-row">
