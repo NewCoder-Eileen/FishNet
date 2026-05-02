@@ -1,103 +1,29 @@
-import { useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import Navbar from '../components/Navbar'
+import { WORLD, MOVEMENT } from '../aquarium/assets'
+import { generateDecorations, drawBackground, drawBorder, drawSeaweed, drawCoral, drawBubble } from '../aquarium/draw'
 import { loadProfile } from '../lib/profile'
 import { MOCK_PROFILES } from '../data/mockProfiles'
 import { proximityScore } from '../lib/proximity'
 
-const WORLD_W   = 3200
-const WORLD_H   = 2200
-const MAX_SPEED = 5
-const ACCEL     = 0.55
-const FRICTION  = 0.88
+const { width: WORLD_W, height: WORLD_H } = WORLD
+const { maxSpeed: MAX_SPEED, accel: ACCEL, friction: FRICTION } = MOVEMENT
 
 // ── Network proximity params ──
 const MIN_RADIUS = 130    // ideal distance for highest-scoring fish
 const MAX_RADIUS = 720    // ideal distance for lowest-scoring fish
-const ATTRACT    = 0.0014 // spring constant pulling fish toward target distance
-const REPULSE_R  = 70     // fish-vs-fish repulsion radius
-const REPULSE_K  = 0.55   // fish-vs-fish repulsion strength
+const ATTRACT    = 0.0014
+const REPULSE_R  = 70
+const REPULSE_K  = 0.55
 const OTHER_FRIC = 0.92
-const THREAD_TH  = 0.18   // score threshold below which we don't draw a thread
+const THREAD_TH  = 0.18
 
-// ── Static decorations ──
-const SEAWEED = Array.from({ length: 38 }, () => ({
-  x:      40 + Math.random() * (WORLD_W - 80),
-  height: 55 + Math.random() * 110,
-  phase:  Math.random() * Math.PI * 2,
-  hue:    135 + Math.random() * 55,
-}))
+// World decorations (seaweed/coral/bubbles) generated once per session
+const DECO = generateDecorations()
 
-const CORAL = Array.from({ length: 18 }, () => ({
-  x:    40 + Math.random() * (WORLD_W - 80),
-  size: 16 + Math.random() * 30,
-  hue:  Math.random() > 0.5 ? 345 : 22,
-  type: Math.floor(Math.random() * 3),
-}))
-
-const AMBIENT = Array.from({ length: 24 }, () => ({
-  x:      Math.random() * WORLD_W,
-  y:      Math.random() * WORLD_H,
-  r:      4 + Math.random() * 10,
-  speed:  0.25 + Math.random() * 0.55,
-  wobble: Math.random() * Math.PI * 2,
-}))
-
-// ── Drawing helpers ──
-function drawSeaweed(ctx, sw, time) {
-  const segs = Math.max(3, Math.floor(sw.height / 22))
-  ctx.lineWidth = 5
-  ctx.strokeStyle = `hsla(${sw.hue}, 55%, 38%, 0.75)`
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ctx.beginPath()
-  for (let i = 0; i <= segs; i++) {
-    const t   = i / segs
-    const y   = WORLD_H - 55 - sw.height * t
-    const sway = Math.sin(time * 0.001 + sw.phase + i * 0.7) * 14 * t
-    if (i === 0) ctx.moveTo(sw.x + sway, y)
-    else         ctx.lineTo(sw.x + sway, y)
-  }
-  ctx.stroke()
-}
-
-function drawCoral(ctx, c) {
-  const y = WORLD_H - 55
-  ctx.lineCap = 'round'
-  if (c.type === 0) {
-    for (let i = 0; i < 7; i++) {
-      const a = -Math.PI * 0.8 + (i / 6) * Math.PI * 1.6
-      ctx.beginPath()
-      ctx.moveTo(c.x, y)
-      ctx.lineTo(c.x + Math.cos(a) * c.size, y + Math.sin(a) * c.size)
-      ctx.lineWidth = 3
-      ctx.strokeStyle = `hsla(${c.hue}, 70%, 60%, 0.8)`
-      ctx.stroke()
-    }
-  } else if (c.type === 1) {
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI + (i / 4) * Math.PI
-      const bx = c.x + Math.cos(a) * c.size * 0.5
-      const by = y + Math.sin(a) * c.size * 0.5 - c.size * 0.3
-      ctx.beginPath()
-      ctx.arc(bx, by, c.size * 0.3, 0, Math.PI * 2)
-      ctx.fillStyle = `hsla(${c.hue}, 75%, 65%, 0.7)`
-      ctx.fill()
-    }
-  } else {
-    function branch(bx, by, len, angle, depth) {
-      if (depth === 0 || len < 5) return
-      const ex = bx + Math.cos(angle) * len
-      const ey = by + Math.sin(angle) * len
-      ctx.lineWidth = depth * 1.2
-      ctx.strokeStyle = `hsla(${c.hue}, 70%, 60%, 0.8)`
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke()
-      branch(ex, ey, len * 0.65, angle - 0.45, depth - 1)
-      branch(ex, ey, len * 0.65, angle + 0.45, depth - 1)
-    }
-    branch(c.x, y, c.size, -Math.PI / 2, 4)
-  }
-}
-
+// Local hue-aware fish drawing — each profile gets a distinct color.
+// Intentionally separate from aquarium/draw.js's drawFish (which is fixed-color).
 function drawFish(ctx, fish) {
   const { x, y, angle, tailPhase, scale = 1, hue = 270 } = fish
   const goingLeft = Math.cos(angle) < 0
@@ -199,63 +125,18 @@ function drawThread(ctx, ax, ay, bx, by, hueA, hueB, score, time, seed) {
   ctx.restore()
 }
 
-function drawWorld(ctx, time) {
-  // Background
-  const bg = ctx.createLinearGradient(0, 0, 0, WORLD_H)
-  bg.addColorStop(0,    '#ede6ff')
-  bg.addColorStop(0.55, '#ccdeff')
-  bg.addColorStop(1,    '#b8d2f5')
-  ctx.fillStyle = bg
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H)
-
-  // Light rays
-  ctx.save()
-  ctx.globalAlpha = 0.045
-  for (let i = 0; i < 10; i++) {
-    const rx = (WORLD_W / 10) * i + Math.sin(time * 0.00025 + i) * 45
-    ctx.beginPath()
-    ctx.moveTo(rx, 0); ctx.lineTo(rx - 110, WORLD_H); ctx.lineTo(rx + 110, WORLD_H); ctx.closePath()
-    ctx.fillStyle = '#fff'; ctx.fill()
-  }
-  ctx.restore()
-
-  // Sand
-  const sand = ctx.createLinearGradient(0, WORLD_H - 65, 0, WORLD_H)
-  sand.addColorStop(0,   'rgba(228, 208, 175, 0)')
-  sand.addColorStop(0.3, 'rgba(218, 198, 160, 0.75)')
-  sand.addColorStop(1,   'rgba(208, 185, 145, 0.95)')
-  ctx.fillStyle = sand
-  ctx.fillRect(0, WORLD_H - 65, WORLD_W, 65)
-
-  // Coral
-  for (const c of CORAL) { ctx.save(); drawCoral(ctx, c); ctx.restore() }
-
-  // Seaweed
-  for (const sw of SEAWEED) { ctx.save(); drawSeaweed(ctx, sw, time); ctx.restore() }
-
-  // Ambient bubbles
-  for (const b of AMBIENT) {
-    const by = ((b.y - time * b.speed * 0.028) % (WORLD_H + 60) + WORLD_H + 60) % (WORLD_H + 60)
-    const bx = b.x + Math.sin(time * 0.0007 + b.wobble) * 18
-    ctx.beginPath(); ctx.arc(bx, by, b.r, 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(170, 160, 235, 0.4)'; ctx.lineWidth = 1.5; ctx.stroke()
-    ctx.beginPath(); ctx.arc(bx - b.r * 0.32, by - b.r * 0.32, b.r * 0.32, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.fill()
-  }
-
-  // World boundary glow
-  ctx.save()
-  ctx.shadowColor = 'rgba(130, 90, 255, 0.45)'; ctx.shadowBlur = 22
-  ctx.strokeStyle = 'rgba(150, 110, 255, 0.38)'; ctx.lineWidth = 7
-  ctx.strokeRect(4, 4, WORLD_W - 8, WORLD_H - 8)
-  ctx.restore()
-}
-
-// ── Component ──
 export default function EventPage() {
   const { code }  = useParams()
   const navigate  = useNavigate()
+  const location  = useLocation()
   const canvasRef = useRef(null)
+  const eventName = location.state?.name || code
+
+  const [showWelcome, setShowWelcome] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setShowWelcome(false), 3500)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -295,10 +176,7 @@ export default function EventPage() {
       keys: {},
     }
 
-    function resize() {
-      canvas.width  = window.innerWidth
-      canvas.height = window.innerHeight
-    }
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
 
@@ -398,9 +276,15 @@ export default function EventPage() {
       ctx.clearRect(0, 0, W, H)
       ctx.save()
       ctx.translate(-(cam.x | 0), -(cam.y | 0))
-      drawWorld(ctx, ts)
 
-      // Threads behind fish
+      // World (background, coral, seaweed, bubbles, border) — from shared aquarium/draw.js
+      drawBackground(ctx, WORLD_W, WORLD_H, ts)
+      for (const c  of DECO.coral)   { ctx.save(); drawCoral(ctx, c);        ctx.restore() }
+      for (const sw of DECO.seaweed) { ctx.save(); drawSeaweed(ctx, sw, ts); ctx.restore() }
+      for (const b  of DECO.bubbles) { drawBubble(ctx, b, ts) }
+      drawBorder(ctx, WORLD_W, WORLD_H)
+
+      // Glowing threads — drawn behind fish
       for (const o of others) {
         if (o.score < THREAD_TH) continue
         drawThread(ctx, player.x, player.y, o.x, o.y, player.hue, o.hue, o.score, ts, o.seed)
@@ -417,12 +301,10 @@ export default function EventPage() {
       drawNameplate(ctx, player)
 
       ctx.restore()
-
       animId = requestAnimationFrame(loop)
     }
 
     animId = requestAnimationFrame(loop)
-
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize',  resize)
@@ -434,9 +316,17 @@ export default function EventPage() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <Navbar dark />
+
+      {showWelcome && (
+        <div className="welcome-toast">
+          🐟 Welcome to <strong>{eventName}</strong>!
+        </div>
+      )}
 
       <div className="event-hud-code">
-        Event: <strong>{code}</strong>&nbsp;&nbsp;·&nbsp;&nbsp;WASD / arrow keys to swim
+        <span className="hud-event-name">{eventName}</span>
+        &nbsp;·&nbsp; {code} &nbsp;·&nbsp; WASD / ↑↓←→ to swim
       </div>
 
       <button className="event-leave-btn" onClick={() => navigate('/')}>
