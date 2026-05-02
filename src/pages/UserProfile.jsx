@@ -332,24 +332,24 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* Bottom toolbar */}
-        {!isSelf && (
-          <div className="bowl-toolbar">
-            <button
-              className={`up-connect-btn ${connStatus?.status === 'accepted' ? 'up-connected' : ''}`}
-              onClick={handleConnect}
-              disabled={connectDisabled}
-            >
-              {connectLabel()}
-            </button>
-            <button className="up-dm-btn" onClick={openDm}>
-              Message
-            </button>
-          </div>
-        )}
-
         {loading && <div className="bowl-saved-flash" style={{ background: 'rgba(100,150,255,0.15)' }}>Loading...</div>}
       </div>
+
+      {/* Action buttons sit outside the bowl so overflow:hidden doesn't clip them */}
+      {!isSelf && (
+        <div className="bowl-toolbar">
+          <button
+            className={`up-connect-btn ${connStatus?.status === 'accepted' ? 'up-connected' : ''}`}
+            onClick={handleConnect}
+            disabled={connectDisabled}
+          >
+            {connectLabel()}
+          </button>
+          <button className="up-dm-btn" onClick={openDm}>
+            Message
+          </button>
+        </div>
+      )}
 
       {/* ── DM Drawer ── */}
       <div className={`profile-dm-drawer ${dmOpen ? 'pdm-open' : ''}`}>
