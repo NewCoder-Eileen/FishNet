@@ -165,7 +165,11 @@ export default function EventPage() {
         }
       }, err => console.error('Firebase read error:', err))
 
-      function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
+      function resize() { 
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+        console.log('Canvas resized to:', canvas.width, 'x', canvas.height)
+      }
       resize()
       window.addEventListener('resize', resize)
 
@@ -178,8 +182,13 @@ export default function EventPage() {
       window.addEventListener('keyup',   onKeyUp)
 
       let animId
+      let frameCount = 0
 
       function loop(ts) {
+        frameCount++
+        if (frameCount === 1) {
+          console.log('Animation loop started, canvas:', canvas, 'ctx:', ctx)
+        }
         const { player, others, cam, keys } = state
         const W = canvas.width, H = canvas.height
 
@@ -271,9 +280,7 @@ export default function EventPage() {
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <canvas 
         ref={canvasRef} 
-        width={window.innerWidth} 
-        height={window.innerHeight}
-        style={{ display: 'block', position: 'absolute', top: 0, left: 0 }} 
+        style={{ display: 'block', position: 'absolute', top: 0, left: 0, backgroundColor: '#1a3a52' }} 
       />
       <Navbar dark />
 
