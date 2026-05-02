@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Test</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+</head>
+<body>
+  <h1>Firebase Connection Test</h1>
+  <p>Check browser console for results...</p>
+  
+  <script>
+    const firebaseConfig = {
+      apiKey:            'AIzaSyCCUeSckyAt51woRNvhF0khHoEZfS180Is',
+      authDomain:        'fishnet-72781.firebaseapp.com',
+      databaseURL:       'https://fishnet-72781-default-rtdb.firebaseio.com',
+      projectId:         'fishnet-72781',
+      storageBucket:     'fishnet-72781.firebasestorage.app',
+      messagingSenderId: '439845806007',
+      appId:             '1:439845806007:web:789546cf9ae5e0e75fd232',
+    };
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log('✅ Firebase initialized successfully');
+      
+      const db = firebase.database();
+      console.log('✅ Database connected:', db.ref().toString());
+      
+      // Try a simple write
+      db.ref('test/ping').set({
+        timestamp: Date.now(),
+        message: 'Connection test'
+      }).then(() => {
+        console.log('✅ Write successful!');
+      }).catch(err => {
+        console.error('❌ Write failed:', err.message);
+      });
+      
+    } catch (err) {
+      console.error('❌ Firebase error:', err);
+    }
+  </script>
+</body>
+</html>

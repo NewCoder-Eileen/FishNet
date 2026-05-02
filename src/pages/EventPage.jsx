@@ -269,7 +269,12 @@ export default function EventPage() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <canvas 
+        ref={canvasRef} 
+        width={window.innerWidth} 
+        height={window.innerHeight}
+        style={{ display: 'block', position: 'absolute', top: 0, left: 0 }} 
+      />
       <Navbar dark />
 
       {showWelcome && (
