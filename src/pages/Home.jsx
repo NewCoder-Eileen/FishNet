@@ -134,10 +134,11 @@ function FishScene({ mouseRef }) {
   useFrame(({ clock }) => {
     if (!groupRef.current) return
     const m = mouseRef.current
-    const tY =  (m.x - 0.5) * Math.PI * 0.55
-    const tX = -(m.y - 0.5) * Math.PI * 0.22
-    groupRef.current.rotation.y += (tY - groupRef.current.rotation.y) * 0.055
-    groupRef.current.rotation.x += (tX - groupRef.current.rotation.x) * 0.055
+    // Wider rotation range + faster lerp so the fish feels responsive to the cursor.
+    const tY =  (m.x - 0.5) * Math.PI * 0.75
+    const tX = -(m.y - 0.5) * Math.PI * 0.32
+    groupRef.current.rotation.y += (tY - groupRef.current.rotation.y) * 0.14
+    groupRef.current.rotation.x += (tX - groupRef.current.rotation.x) * 0.14
     groupRef.current.position.y  = Math.sin(clock.elapsedTime * 0.75) * 0.12
   })
 

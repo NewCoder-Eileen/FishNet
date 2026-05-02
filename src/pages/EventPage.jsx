@@ -114,7 +114,7 @@ export default function EventPage() {
           x: WORLD_W / 2, y: WORLD_H / 2,
           vx: 0, vy: 0, angle: 0, tailPhase: 0,
           styleId: myStyleId, hue: myHue, scale: 1.15,
-          name:      me.name      || 'You',
+          name:      me.name      || getSession()?.username || 'You',
           interests: me.interests || [],
           goals:     me.goals     || [],
         },

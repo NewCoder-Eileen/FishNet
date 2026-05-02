@@ -8,6 +8,13 @@ import seaweedA from '../assets/seaweed-a.png'
 import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
 
+// Format the @handle nicely. If the username already contains an @ (it's
+// shaped like an email), show it raw — otherwise prefix it with @.
+function fmtHandle(username) {
+  if (!username) return '@guest'
+  return username.includes('@') ? username : `@${username}`
+}
+
 // Convert a Spotify share URL into the embeddable iframe URL.
 // Returns null if the URL doesn't look like a Spotify resource.
 function extractSpotifyEmbed(rawUrl) {
@@ -399,6 +406,21 @@ function AccountModal({ session, accountInfo, onClose }) {
   )
 }
 
+// ── Seaweed clumps along the bottom ──
+// Pairs of (src, position, size, mirror, delay) — varied sizes + a few overlaps
+// so the floor reads as a planted patch instead of a spaced-out trio.
+const SEAWEEDS = [
+  { src: seaweedA, leftPct:  2,  size: 170, bottom:  0, mirror: false, delay: -1.2, op: 0.95 },
+  { src: seaweedB, leftPct: 12,  size: 130, bottom: -2, mirror: true,  delay: -2.1, op: 0.85 },
+  { src: seaweedA, leftPct: 22,  size: 200, bottom: -2, mirror: false, delay: -3.4, op: 0.92 },
+  { src: seaweedB, leftPct: 34,  size: 240, bottom: -3, mirror: false, delay: -3.0, op: 0.95 },
+  { src: seaweedA, leftPct: 46,  size: 145, bottom: -1, mirror: true,  delay: -4.5, op: 0.85 },
+  { src: seaweedB, leftPct: 56,  size: 200, bottom: -2, mirror: false, delay: -2.8, op: 0.93 },
+  { src: seaweedA, leftPct: 68,  size: 160, bottom: -2, mirror: true,  delay: -3.7, op: 0.88 },
+  { src: seaweedB, leftPct: 78,  size: 130, bottom: -1, mirror: false, delay: -1.5, op: 0.85 },
+  { src: seaweedA, leftPct: 88,  size: 180, bottom:  0, mirror: true,  delay: -4.0, op: 0.95 },
+]
+
 // ── The dots (3 sections: playlist / interests / resume) ──
 // xPct/yPct are positions inside the canvas (0..1). topPct/leftPct are CSS
 // positions for the visible dot button (same value, expressed as %).
@@ -500,10 +522,14 @@ export default function Profile() {
           </button>
           <div className="bowl-id-text">
             <div className="bowl-username-row">
-              <p className="bowl-username">@{session?.username || 'guest'}</p>
+              <p className="bowl-username">
+                {profile.name || fmtHandle(session?.username)}
+              </p>
               <button className="bowl-edit-info-btn" onClick={() => startEdit('about')} title="Edit name & bio" aria-label="Edit name & bio">✏</button>
             </div>
-            {profile.name && <p className="bowl-display-name">{profile.name}</p>}
+            {profile.name && session?.username && (
+              <p className="bowl-display-name">{fmtHandle(session.username)}</p>
+            )}
             <div className="bowl-contact-row">
               {profile.socials?.email    && <a className="bowl-contact-chip" href={`mailto:${profile.socials.email}`} title={profile.socials.email}>✉ Email</a>}
               {profile.socials?.github   && <a className="bowl-contact-chip" href={profile.socials.github}   target="_blank" rel="noreferrer">GitHub</a>}
@@ -518,10 +544,23 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Seaweed */}
-        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-left"   aria-hidden />
-        <img src={seaweedB} alt="" className="bowl-seaweed seaweed-mid"    aria-hidden />
-        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-right"  aria-hidden />
+        {/* Seaweed — dense bed of clumps along the bottom */}
+        {SEAWEEDS.map((s, i) => (
+          <img
+            key={i}
+            src={s.src}
+            alt=""
+            aria-hidden
+            className={`bowl-seaweed${s.mirror ? ' seaweed-mirror' : ''}`}
+            style={{
+              left:    `${s.leftPct}%`,
+              bottom:  `${s.bottom}%`,
+              width:   s.size,
+              opacity: s.op,
+              animationDelay: `${s.delay}s`,
+            }}
+          />
+        ))}
 
         {/* Sand + rocks */}
         <div className="bowl-sand" aria-hidden />

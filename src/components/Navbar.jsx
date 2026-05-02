@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Menu } from 'lucide-react'
+import { ChevronDown, ChevronRight, LogOut, Menu, User } from 'lucide-react'
 import { isLoggedIn, logout, getSession } from '../lib/auth'
-import logo from '../assets/logo.png'
 
 const ACCENT = '#7c5cd8'
 
@@ -25,15 +24,25 @@ function PrivacyModal({ onClose }) {
         <button className="close-modal glass-btn" onClick={onClose} aria-label="Close">×</button>
         <div className="modal-header">
           <h2>Privacy</h2>
-          <p className="modal-subtitle">🐟 We promise we&apos;re not evil fish stealing your data.</p>
+          <p className="modal-subtitle">We&apos;re not the kind of fish that steal your data.</p>
         </div>
         <div className="privacy-body">
-          <p>Here&apos;s what we actually collect — and it&apos;s not much:</p>
           <ul className="privacy-list">
-            <li>🐠 <strong>Your username</strong> — so we know which fish is you in the aquarium.</li>
-            <li>🪸 <strong>Event participation</strong> — so we know which aquarium to drop you into.</li>
+            <li>
+              <span className="privacy-icon" aria-hidden>👤</span>
+              <div className="privacy-text">
+                <strong>Your username</strong>
+                <span>So we know which fish is you in the aquarium.</span>
+              </div>
+            </li>
+            <li>
+              <span className="privacy-icon" aria-hidden>🎟️</span>
+              <div className="privacy-text">
+                <strong>Event participation</strong>
+                <span>So we know which aquarium to drop you into.</span>
+              </div>
+            </li>
           </ul>
-          <p className="privacy-footer">Questions? We&apos;re just fish. But friendly ones. 🌊</p>
         </div>
       </div>
     </div>
@@ -43,13 +52,26 @@ function PrivacyModal({ onClose }) {
 export default function Navbar() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const accountWrapRef = useRef(null)
   const loggedIn = isLoggedIn()
   const session  = loggedIn ? getSession() : null
   const initial  = session?.username?.[0]?.toUpperCase() || '?'
 
-  function go(href) { setOpen(false); navigate(href) }
-  function handleLogout() { setOpen(false); logout(); navigate('/login') }
+  function go(href) { setOpen(false); setAccountOpen(false); navigate(href) }
+  function handleLogout() { setOpen(false); setAccountOpen(false); logout(); navigate('/login') }
+
+  // Close the account popover on outside click
+  useEffect(() => {
+    if (!accountOpen) return
+    function onDown(e) {
+      if (!accountWrapRef.current) return
+      if (!accountWrapRef.current.contains(e.target)) setAccountOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [accountOpen])
 
   return (
     <>
@@ -57,18 +79,18 @@ export default function Navbar() {
         className="flex justify-center pt-4 sm:pt-6 px-3 sm:px-4"
         style={{ position: 'relative', zIndex: 40, fontFamily: "'Inter', system-ui, sans-serif" }}
       >
-        <div className="bg-white rounded-full shadow-sm border border-neutral-200 pl-2 pr-2 py-2 w-full max-w-[760px] relative flex items-center">
-          {/* Logo */}
-          <button
-            onClick={() => go('/')}
-            className="shrink-0 pl-1 inline-flex items-center"
-            aria-label="FishNet home"
-          >
-            <img src={logo} alt="FishNet" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
-          </button>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 ml-6 text-[14px] text-neutral-800">
+        <div
+          className="rounded-full pl-4 pr-2 py-2 w-full max-w-[760px] relative flex items-center"
+          style={{
+            background: 'rgba(255, 255, 255, 0.45)',
+            backdropFilter: 'blur(14px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+            border: '1px solid rgba(255, 255, 255, 0.45)',
+            boxShadow: '0 8px 24px rgba(40, 70, 110, 0.10)',
+          }}
+        >
+          {/* Desktop nav — left-aligned, account cluster stays on the right */}
+          <nav className="hidden md:flex items-center gap-6 text-[14px] text-neutral-800 ml-2">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.label}
@@ -91,17 +113,52 @@ export default function Navbar() {
           {/* Right cluster */}
           <div className="ml-auto flex items-center gap-2">
             {loggedIn ? (
-              <button
-                onClick={() => go('/profile')}
-                className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 py-1 text-[13px] sm:text-[14px] text-white"
-                style={{ backgroundColor: ACCENT }}
-                title={`Profile (${session?.username})`}
-              >
-                <span className="hidden sm:inline">@{session?.username}</span>
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/25 font-bold">
-                  {initial}
-                </span>
-              </button>
+              <div className="relative" ref={accountWrapRef}>
+                <button
+                  onClick={() => setAccountOpen(o => !o)}
+                  className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 py-1 text-[13px] sm:text-[14px] text-white"
+                  style={{ backgroundColor: ACCENT }}
+                  title={`@${session?.username}`}
+                  aria-expanded={accountOpen}
+                  aria-haspopup="menu"
+                >
+                  <span className="hidden sm:inline">@{session?.username}</span>
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/25 font-bold">
+                    {initial}
+                  </span>
+                </button>
+
+                {accountOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full mt-2 w-44 rounded-2xl p-2 z-30"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.85)',
+                      backdropFilter: 'blur(14px) saturate(140%)',
+                      WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+                      border: '1px solid rgba(255, 255, 255, 0.6)',
+                      boxShadow: '0 12px 28px rgba(40, 70, 110, 0.18)',
+                    }}
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => go('/profile')}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] text-neutral-800 hover:bg-neutral-100 text-left"
+                    >
+                      <User size={15} className="text-neutral-500" />
+                      Profile
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] text-rose-600 hover:bg-rose-50 text-left"
+                    >
+                      <LogOut size={15} />
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={() => go('/login')}
@@ -127,7 +184,16 @@ export default function Navbar() {
 
           {/* Mobile dropdown */}
           {open && (
-            <div className="absolute top-full left-2 right-2 mt-2 bg-white rounded-2xl shadow-lg border border-neutral-200 p-3 z-20 md:hidden">
+            <div
+              className="absolute top-full left-2 right-2 mt-2 rounded-2xl p-3 z-20 md:hidden"
+              style={{
+                background: 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(14px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+                border: '1px solid rgba(255, 255, 255, 0.6)',
+                boxShadow: '0 12px 28px rgba(40, 70, 110, 0.18)',
+              }}
+            >
               <ul className="flex flex-col">
                 {NAV_ITEMS.map(item => (
                   <li key={item.label}>
@@ -152,8 +218,9 @@ export default function Navbar() {
                   <li>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] text-neutral-700 hover:bg-neutral-100 text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[14px] text-rose-600 hover:bg-rose-50 text-left"
                     >
+                      <LogOut size={15} />
                       Log out
                     </button>
                   </li>
