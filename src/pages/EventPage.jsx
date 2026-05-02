@@ -8,7 +8,7 @@ import { loadProfile } from '../lib/profile'
 import { getSession } from '../lib/auth'
 import { db } from '../lib/firebase'
 import { drawFish, getStyle } from '../aquarium/fishStyles'
-import { sendEventMessage } from '../lib/chat'
+import { sendEventMessage, getAcceptedConnectionCount } from '../lib/chat'
 import { playBubble } from '../lib/audio'
 import jellyBlueCute from '../assets/jelly-blue-cute.png'
 
@@ -211,11 +211,22 @@ export default function EventPage() {
       const myId = (getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`).replace(/\./g, '_')
       myIdRef.current = myId
 
+      // Fish grows with each accepted connection (caps at 1.8×)
+      const friendCount = await getAcceptedConnectionCount()
+      const fishScale = Math.min(1.8, 1.0 + friendCount * 0.04)
+
+      // Persist this event in history so user can rejoin without re-entering code
+      try {
+        const hist = JSON.parse(localStorage.getItem('fishnet_events') || '{}')
+        hist[code] = { ...hist[code], name: eventName, lastVisited: Date.now() }
+        localStorage.setItem('fishnet_events', JSON.stringify(hist))
+      } catch {}
+
       const state = {
         player: {
           x: WORLD_W / 2, y: WORLD_H / 2,
           vx: 0, vy: 0, angle: 0, tailPhase: 0,
-          styleId: style.id, hue: myHue, scale: 1.15,
+          styleId: style.id, hue: myHue, scale: fishScale,
           accessories: myAccessories,
           name:        'You',
           displayName: me.name || getSession()?.username || 'Anon',
