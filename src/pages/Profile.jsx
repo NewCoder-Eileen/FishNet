@@ -48,9 +48,71 @@ function TagInput({ value, onChange, placeholder }) {
   )
 }
 
-// ── Single fish swimming inside the bowl ──
-function BowlFish({ styleId }) {
+// ── Static fish preview (used in the bowl id-card square) ──
+function FishPreview({ styleId, width = 84, height = 84 }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    canvas.width  = width  * dpr
+    canvas.height = height * dpr
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+    const style = getStyle(styleId)
+    const fish = {
+      styleId: style.id,
+      x: width / 2, y: height / 2,
+      angle: 0, tailPhase: 0,
+      scale: Math.min(width, height) / 75,
+    }
+    let raf = 0
+    function loop(ts) {
+      ctx.clearRect(0, 0, width, height)
+      fish.tailPhase = ts * 0.005
+      drawFish(ctx, fish)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [styleId, width, height])
+  return <canvas ref={ref} style={{ width, height, display: 'block' }} aria-hidden />
+}
+
+// ── Single fish swimming inside the bowl, controlled by WASD / arrow keys ──
+// Props:
+//   dots:          [{ id, xPct, yPct, hitR }]  — proximity targets in canvas space
+//   onDotEnter(id) — fired once per swim-in event for each dot
+//   hintRef        — DOM element that we position right above the fish
+function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
   const canvasRef = useRef(null)
+  const keysRef   = useRef({})
+
+  // Tunables
+  const ACCEL    = 0.48
+  const FRICTION = 0.91
+  const MAX_V    = 4.6
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      const t = e.target
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      keysRef.current[e.key] = true
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault()
+    }
+    function onKeyUp(e) { keysRef.current[e.key] = false }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup',   onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup',   onKeyUp)
+    }
+  }, [])
+
+  // Latest props in a ref so the loop reads fresh values without rebooting.
+  const propsRef = useRef({ dots, onDotEnter, hintRef })
+  useEffect(() => { propsRef.current = { dots, onDotEnter, hintRef } }, [dots, onDotEnter, hintRef])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -75,40 +137,82 @@ function BowlFish({ styleId }) {
       angle: 0,
       tailPhase: 0,
       scale: 1.6,
-      targetX: W / 2, targetY: H * 0.45,
-      targetTimer: 0,
     }
-    function aim() {
-      fish.targetX = W * 0.22 + Math.random() * W * 0.56
-      fish.targetY = H * 0.20 + Math.random() * H * 0.45
-      fish.targetTimer = 140 + Math.random() * 240
-    }
-    aim()
+    const dotState = new Map()   // id → { inside: bool }
 
     let raf = 0
     function loop() {
       ctx.clearRect(0, 0, W, H)
-      const dx = fish.targetX - fish.x
-      const dy = fish.targetY - fish.y
-      const d  = Math.hypot(dx, dy) || 0.001
-      fish.vx += (dx / d) * 0.04
-      fish.vy += (dy / d) * 0.04
-      fish.vx *= 0.93
-      fish.vy *= 0.93
+
+      const k = keysRef.current
+      const left  = k['ArrowLeft']  || k['a'] || k['A']
+      const right = k['ArrowRight'] || k['d'] || k['D']
+      const up    = k['ArrowUp']    || k['w'] || k['W']
+      const down  = k['ArrowDown']  || k['s'] || k['S']
+
+      if (left)  fish.vx -= ACCEL
+      if (right) fish.vx += ACCEL
+      if (up)    fish.vy -= ACCEL
+      if (down)  fish.vy += ACCEL
+
+      fish.vx *= FRICTION
+      fish.vy *= FRICTION
+
       const v = Math.hypot(fish.vx, fish.vy)
-      if (v > 0.65) { fish.vx = (fish.vx / v) * 0.65; fish.vy = (fish.vy / v) * 0.65 }
+      if (v > MAX_V) { fish.vx = (fish.vx / v) * MAX_V; fish.vy = (fish.vy / v) * MAX_V }
+
       fish.x += fish.vx
       fish.y += fish.vy
-      if (v > 0.05) fish.angle = Math.atan2(fish.vy, fish.vx)
-      fish.tailPhase += 0.08 + v * 0.05
-      fish.targetTimer -= 1
-      if (d < 16 || fish.targetTimer <= 0) aim()
+
+      // Keep inside an inset ellipse
+      const cx = W / 2, cy = H / 2
+      const rx = W * 0.46, ry = H * 0.46
+      const ex = (fish.x - cx) / rx
+      const ey = (fish.y - cy) / ry
+      const er = Math.hypot(ex, ey)
+      if (er > 1) {
+        fish.x = cx + (ex / er) * rx
+        fish.y = cy + (ey / er) * ry
+        const nx = ex / er, ny = ey / er
+        const dotV = fish.vx * nx + fish.vy * ny
+        if (dotV > 0) {
+          fish.vx -= dotV * nx
+          fish.vy -= dotV * ny
+          fish.vx *= 0.5; fish.vy *= 0.5
+        }
+      }
+
+      if (v > 0.15) fish.angle = Math.atan2(fish.vy, fish.vx)
+      fish.tailPhase += 0.08 + v * 0.04
+
       drawFish(ctx, fish)
+
+      // Dot proximity — fire onDotEnter once per swim-in
+      const pp = propsRef.current
+      for (const d of pp.dots) {
+        const dx = d.xPct * W - fish.x
+        const dy = d.yPct * H - fish.y
+        const dist = Math.hypot(dx, dy)
+        const r = d.hitR ?? 36
+        const wasInside = dotState.get(d.id)?.inside || false
+        const inside = dist < r
+        if (inside && !wasInside) pp.onDotEnter?.(d.id)
+        dotState.set(d.id, { inside })
+      }
+
+      // Position the floating hint directly above the fish (DOM-only update,
+      // no React re-render).
+      const hintEl = pp.hintRef?.current
+      if (hintEl) {
+        hintEl.style.left = `${fish.x}px`
+        hintEl.style.top  = `${fish.y - 44}px`
+      }
+
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
 
-    function onResize() { ({ W, H } = resize()); aim() }
+    function onResize() { ({ W, H } = resize()) }
     window.addEventListener('resize', onResize)
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize) }
   }, [styleId])
@@ -280,13 +384,13 @@ function AccountModal({ session, accountInfo, onClose }) {
   )
 }
 
-// ── The dots (categories shown over the rocks/seaweed) ──
+// ── The dots (3 sections: playlist / interests / resume) ──
+// xPct/yPct are positions inside the canvas (0..1). topPct/leftPct are CSS
+// positions for the visible dot button (same value, expressed as %).
 const DOTS = [
-  { id: 'about',     label: 'About',     color: 'blue',  top: '78%', left: '24%' },
-  { id: 'contact',   label: 'Contact',   color: 'green', top: '83%', left: '40%' },
-  { id: 'interests', label: 'Interests', color: 'blue',  top: '76%', left: '55%' },
-  { id: 'resume',    label: 'Resume',    color: 'green', top: '82%', left: '70%' },
-  { id: 'spotify',   label: 'Spotify',   color: 'blue',  top: '70%', left: '85%' },
+  { id: 'playlist',  label: 'Playlist',  color: 'blue',  xPct: 0.20, yPct: 0.78 },
+  { id: 'interests', label: 'Interests', color: 'green', xPct: 0.50, yPct: 0.86 },
+  { id: 'resume',    label: 'Resume',    color: 'blue',  xPct: 0.80, yPct: 0.78 },
 ]
 
 // ── Page ──
@@ -296,11 +400,23 @@ export default function Profile() {
   const accountInfo = session ? getAccountInfo(session.username) : null
 
   const [profile, setProfile]           = useState(loadProfile)
-  const [draft, setDraft]               = useState(null)         // working copy while a modal is open
-  const [openSection, setOpenSection]   = useState(null)         // dot id currently open
+  const [draft, setDraft]               = useState(null)
+  const [openSection, setOpenSection]   = useState(null)
   const [fishEditOpen, setFishEditOpen] = useState(false)
   const [accountOpen, setAccountOpen]   = useState(false)
   const [savedFlash, setSavedFlash]     = useState(false)
+  const hintRef = useRef(null)
+  const lastDotEnterRef = useRef(0)
+
+  // Open the right modal when the fish swims into a dot. Throttle so we don't
+  // re-open immediately if the user closes and lingers.
+  function handleDotEnter(id) {
+    if (openSection || draft || fishEditOpen || accountOpen) return
+    const now = performance.now()
+    if (now - lastDotEnterRef.current < 1200) return
+    lastDotEnterRef.current = now
+    startEdit(id)
+  }
 
   function startEdit(section) {
     setDraft({ ...profile, socials: { ...(profile.socials || {}) }, customLinks: [...(profile.customLinks || [])] })
@@ -345,13 +461,37 @@ export default function Profile() {
         <div className="fishbowl-shine" aria-hidden />
         <div className="fishbowl-water-line" aria-hidden />
 
-        {/* Fish swimming */}
-        <BowlFish styleId={fish.styleId} />
+        {/* Fish swimming — controllable with WASD / arrows, fills entire bowl */}
+        <BowlFish
+          styleId={fish.styleId}
+          dots={DOTS}
+          onDotEnter={handleDotEnter}
+          hintRef={hintRef}
+        />
 
-        {/* Username overlay */}
-        <div className="bowl-name-tag">
-          <p className="bowl-username">@{session?.username || 'guest'}</p>
-          {profile.name && <p className="bowl-display-name">{profile.name}</p>}
+        {/* Identity card — fish square + username + inline contact */}
+        <div className="bowl-id-card">
+          <div className="bowl-fish-square">
+            <FishPreview styleId={fish.styleId} width={84} height={84} />
+          </div>
+          <div className="bowl-id-text">
+            <div className="bowl-username-row">
+              <p className="bowl-username">@{session?.username || 'guest'}</p>
+              <button className="bowl-edit-info-btn" onClick={() => startEdit('about')} title="Edit name & bio" aria-label="Edit name & bio">✏</button>
+            </div>
+            {profile.name && <p className="bowl-display-name">{profile.name}</p>}
+            <div className="bowl-contact-row">
+              {profile.socials?.email    && <a className="bowl-contact-chip" href={`mailto:${profile.socials.email}`} title={profile.socials.email}>✉ Email</a>}
+              {profile.socials?.github   && <a className="bowl-contact-chip" href={profile.socials.github}   target="_blank" rel="noreferrer">GitHub</a>}
+              {profile.socials?.linkedin && <a className="bowl-contact-chip" href={profile.socials.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>}
+              {profile.socials?.twitter  && <a className="bowl-contact-chip" href={profile.socials.twitter}  target="_blank" rel="noreferrer">Twitter</a>}
+              {profile.socials?.devpost  && <a className="bowl-contact-chip" href={profile.socials.devpost}  target="_blank" rel="noreferrer">Devpost</a>}
+              {profile.socials?.website  && <a className="bowl-contact-chip" href={profile.socials.website}  target="_blank" rel="noreferrer">Site</a>}
+              {!profile.socials || Object.values(profile.socials).every(v => !v)
+                ? <button className="bowl-contact-chip ghost" onClick={() => startEdit('contact')}>+ Add contact</button>
+                : <button className="bowl-contact-chip ghost" onClick={() => startEdit('contact')}>Edit</button>}
+            </div>
+          </div>
         </div>
 
         {/* Seaweed */}
@@ -369,21 +509,27 @@ export default function Profile() {
           <span className="rock rock-5" />
         </div>
 
-        {/* Glowing info dots */}
+        {/* Floating hint above the fish (DOM-positioned by BowlFish) */}
+        <div ref={hintRef} className="bowl-fish-hint" aria-hidden>
+          <span>swim to a glowing dot</span>
+          <span className="bowl-fish-hint-tail" />
+        </div>
+
+        {/* Glowing info dots — same percentages used for canvas-space proximity */}
         {DOTS.map(d => (
           <button
             key={d.id}
             className={`bowl-dot bowl-dot-${d.color}`}
-            style={{ top: d.top, left: d.left }}
+            style={{ left: `${d.xPct * 100}%`, top: `${d.yPct * 100}%` }}
             onClick={() => startEdit(d.id)}
             aria-label={d.label}
             title={d.label}
-          />
+          >
+            <span className="bowl-dot-tooltip">{d.label}</span>
+          </button>
         ))}
 
-        <p className="bowl-dot-hint">↓ Tap a glowing dot to view or edit ↓</p>
-
-        {/* Bottom toolbar (edit fish + account) */}
+        {/* Bottom toolbar */}
         <div className="bowl-toolbar">
           <button className="glass-btn" onClick={() => setFishEditOpen(true)}>🐟 Pick fish</button>
           <button className="glass-btn" onClick={() => setAccountOpen(true)}>⚙ Account</button>
