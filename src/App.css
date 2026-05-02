@@ -1,3 +1,20 @@
+/* ── Scroll fade-in ── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.btn-grid .jellyfish:nth-child(1) { transition-delay: 0s; }
+.btn-grid .jellyfish:nth-child(2) { transition-delay: 0.15s; }
+.btn-grid .jellyfish:nth-child(3) { transition-delay: 0.3s; }
+
 /* ── Global ── */
 html, body {
   min-height: 100%;

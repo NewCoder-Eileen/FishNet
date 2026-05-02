@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import './App.css'
 
 const NAV_LINKS = ['Home', 'Profile', 'Join Event', 'Connect', 'About', 'Privacy']
@@ -7,6 +8,21 @@ const NAV_BUTTONS = [
   { label: 'Join Event', graphic: null },
   { label: 'Connect',    graphic: null },
 ]
+
+function useFadeIn() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('visible') },
+      { threshold: 0.15 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  return ref
+}
 
 function Navbar() {
   return (
@@ -24,8 +40,9 @@ function Navbar() {
 }
 
 function Jellyfish({ label, graphic }) {
+  const ref = useFadeIn()
   return (
-    <button type="button" className="jellyfish">
+    <button type="button" className="jellyfish fade-up" ref={ref}>
       <div className="jelly-bell">
         <div className="jelly-shine" />
         <div className="jelly-graphic">
@@ -42,6 +59,15 @@ function Jellyfish({ label, graphic }) {
   )
 }
 
+function Section({ className, id, children }) {
+  const ref = useFadeIn()
+  return (
+    <section className={`${className} fade-up`} id={id} ref={ref}>
+      {children}
+    </section>
+  )
+}
+
 function App() {
   return (
     <>
@@ -49,26 +75,26 @@ function App() {
 
       <main>
         <section className="hero" id="home">
-          <div className="hero-logo-placeholder">Your Logo Here</div>
+          <div className="hero-logo-placeholder fade-up visible">Your Logo Here</div>
         </section>
 
-        <section className="about-section" id="about">
+        <Section className="about-section" id="about">
           <h2>About</h2>
           <p>Tell your story here — what is fishnet, who is it for, and what makes it different.</p>
-        </section>
+        </Section>
 
-        <section className="btn-section" id="join-event">
+        <Section className="btn-section" id="join-event">
           <div className="btn-grid">
-            {NAV_BUTTONS.map((btn, i) => (
-              <Jellyfish key={btn.label} {...btn} delay={i * 0.8} />
+            {NAV_BUTTONS.map((btn) => (
+              <Jellyfish key={btn.label} {...btn} />
             ))}
           </div>
-        </section>
+        </Section>
 
-        <section className="privacy-section" id="privacy">
+        <Section className="privacy-section" id="privacy">
           <h2>Privacy</h2>
           <p>Your privacy policy goes here.</p>
-        </section>
+        </Section>
       </main>
     </>
   )
