@@ -13,6 +13,11 @@ import fishBlueCute from '../assets/fish-blue-cute.webp'
 import fishClown    from '../assets/fish-clown.webp'
 import fishPink     from '../assets/fish-pink.webp'
 import fishSimple   from '../assets/fish-simple.webp'
+import jellyBlueCute from '../assets/jelly-blue-cute.png'
+import jellyPinkCute from '../assets/jelly-pink-cute.png'
+import octoPinkCute  from '../assets/octo-pink-cute.png'
+import octoBlueCute  from '../assets/octo-blue-cute.png'
+import starfishCute  from '../assets/starfish-cute.png'
 import '../App.css'
 
 const NAV_BUTTONS = [
@@ -306,7 +311,10 @@ function BackgroundFish() {
     size:    36 + Math.random() * 44,
     dur:     18 + Math.random() * 20,
     delay:   Math.random() * 30,
-    flipX:   true,
+    // Alternate direction so half swim left→right and half swim right→left.
+    // The source art faces left, so the CSS animation handles the proper flip
+    // for each direction (mirror on .ltr, natural on .rtl).
+    dir:     i % 2 === 0 ? 'ltr' : 'rtl',
     opacity: 0.13 + Math.random() * 0.15,
   })), [])
 
@@ -316,7 +324,7 @@ function BackgroundFish() {
         <img
           key={f.id}
           src={f.src}
-          className="bg-fish-img ltr"
+          className={`bg-fish-img ${f.dir}`}
           style={{
             top: `${f.top}%`,
             width: f.size,
@@ -325,6 +333,55 @@ function BackgroundFish() {
             animationDelay: `${-f.delay}s`,
           }}
         />
+      ))}
+    </div>
+  )
+}
+
+// ── Background sea creatures (jellies, octopuses, starfish) ──
+const BG_CREATURE_IMGS = [
+  jellyBlueCute,
+  jellyPinkCute,
+  octoPinkCute,
+  octoBlueCute,
+  starfishCute,
+]
+
+function BackgroundCreatures() {
+  const creatures = useMemo(() => Array.from({ length: 10 }, (_, i) => ({
+    id: i,
+    src:     BG_CREATURE_IMGS[i % BG_CREATURE_IMGS.length],
+    top:     8 + Math.random() * 78,
+    size:    52 + Math.random() * 40,
+    dur:     22 + Math.random() * 22,
+    delay:   Math.random() * 36,
+    bobDur:  3 + Math.random() * 2.5,
+    dir:     i % 2 === 0 ? 'ltr' : 'rtl',
+    opacity: 0.55 + Math.random() * 0.35,
+  })), [])
+
+  return (
+    <div className="bg-creature-layer" aria-hidden>
+      {creatures.map(c => (
+        <div
+          key={c.id}
+          className={`bg-creature ${c.dir}`}
+          style={{
+            top: `${c.top}%`,
+            animationDuration: `${c.dur}s`,
+            animationDelay: `${-c.delay}s`,
+          }}
+        >
+          <img
+            src={c.src}
+            className="bg-creature-img"
+            style={{
+              width: c.size,
+              opacity: c.opacity,
+              animationDuration: `${c.bobDur}s`,
+            }}
+          />
+        </div>
       ))}
     </div>
   )
@@ -348,6 +405,7 @@ function HeroSection() {
       <AmbientBubbles />
       <Particles />
       <BackgroundFish />
+      <BackgroundCreatures />
 
       <InteractiveFish />
 

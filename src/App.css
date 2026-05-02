@@ -329,18 +329,71 @@ main {
   animation: bg-fish-rtl linear infinite;
 }
 
+/* Source art faces left. LTR mirrors it (so the fish points right while
+   moving right). RTL keeps the natural orientation. */
 @keyframes bg-fish-ltr {
-  0%   { transform: translateX(0);      opacity: 0; }
-  5%   {                                opacity: 1; }
-  95%  { transform: translateX(110vw);  opacity: 0.8; }
-  100% { transform: translateX(115vw);  opacity: 0; }
+  0%   { transform: translateX(0)       scaleX(-1); opacity: 0; }
+  5%   {                                            opacity: 1; }
+  95%  { transform: translateX(110vw)   scaleX(-1); opacity: 0.8; }
+  100% { transform: translateX(115vw)   scaleX(-1); opacity: 0; }
 }
 
 @keyframes bg-fish-rtl {
-  0%   { transform: translateX(0)       scaleX(-1); opacity: 0; }
-  5%   {                                            opacity: 1; }
-  95%  { transform: translateX(-110vw)  scaleX(-1); opacity: 0.8; }
-  100% { transform: translateX(-115vw)  scaleX(-1); opacity: 0; }
+  0%   { transform: translateX(0);       opacity: 0; }
+  5%   {                                 opacity: 1; }
+  95%  { transform: translateX(-110vw);  opacity: 0.8; }
+  100% { transform: translateX(-115vw);  opacity: 0; }
+}
+
+/* ── Background sea creatures (jellies, octopuses, starfish) ── */
+.bg-creature-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.bg-creature {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.bg-creature.ltr {
+  left: -160px;
+  animation: bg-creature-ltr linear infinite;
+}
+
+.bg-creature.rtl {
+  right: -160px;
+  animation: bg-creature-rtl linear infinite;
+}
+
+.bg-creature-img {
+  display: block;
+  animation: bg-creature-bob ease-in-out infinite alternate;
+  filter: drop-shadow(0 6px 14px rgba(110, 130, 200, 0.25));
+}
+
+@keyframes bg-creature-ltr {
+  0%   { transform: translateX(0);      opacity: 0; }
+  6%   {                                opacity: 1; }
+  94%  { transform: translateX(112vw);  opacity: 1; }
+  100% { transform: translateX(118vw);  opacity: 0; }
+}
+
+@keyframes bg-creature-rtl {
+  0%   { transform: translateX(0);       opacity: 0; }
+  6%   {                                 opacity: 1; }
+  94%  { transform: translateX(-112vw);  opacity: 1; }
+  100% { transform: translateX(-118vw);  opacity: 0; }
+}
+
+@keyframes bg-creature-bob {
+  0%   { transform: translateY(-8px) rotate(-3deg); }
+  100% { transform: translateY(8px)  rotate(3deg);  }
 }
 
 .bg-jellies {
@@ -476,38 +529,56 @@ main {
 
 /* ── About ── */
 .about-section {
-  padding: 80px 32px;
-  max-width: 1040px;
+  padding: 96px 32px 72px;
+  max-width: 1080px;
   margin: 0 auto;
   text-align: center;
-  border-top: 1px solid rgba(180, 150, 220, 0.2);
+  position: relative;
+}
+
+/* Soft horizontal sheen instead of a hard border, so the section flows into
+   the surrounding ocean rather than being cut off by a line. */
+.about-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(200, 220, 255, 0.28) 50%,
+    transparent);
+  pointer-events: none;
 }
 
 .about-section h2,
 .privacy-section h2 {
   font-size: 36px;
   margin-bottom: 16px;
-  background: linear-gradient(90deg, #a0eeff, #60c8e8);
+  background: linear-gradient(90deg, #f1e6ff, #c4b6f5 60%, #b6c8f5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 2px 18px rgba(60, 30, 120, 0.35);
 }
 
 .about-section p,
 .privacy-section p {
-  color: #c0e8f5;
+  color: rgba(232, 222, 255, 0.92);
   font-size: 17px;
   line-height: 1.8;
 }
 
 /* ── About cards (glassmorphism) ── */
 .about-title {
-  font-size: 36px;
+  font-family: 'Klephon', system-ui, sans-serif;
+  font-size: 42px;
   margin-bottom: 40px;
-  background: linear-gradient(90deg, #a0eeff, #60c8e8);
+  background: linear-gradient(90deg, #ffffff 0%, #e8d8ff 50%, #b6c8f5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 18px rgba(60, 30, 120, 0.4);
 }
 
 .about-cards {
@@ -519,37 +590,43 @@ main {
 }
 
 .about-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(180, 220, 255, 0.22);
+  background:
+    radial-gradient(circle at 25% 0%,
+      rgba(255, 255, 255, 0.20) 0%,
+      rgba(220, 230, 255, 0.08) 45%,
+      rgba(180, 200, 250, 0.04) 100%);
+  border: 1px solid rgba(220, 232, 255, 0.30);
   border-radius: 22px;
-  padding: 32px 24px;
+  padding: 30px 24px;
   text-align: left;
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-          backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+          backdrop-filter: blur(18px) saturate(150%);
   box-shadow:
-    0 10px 36px rgba(20, 50, 90, 0.20),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    0 14px 36px rgba(20, 30, 90, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.30);
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .about-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-5px);
+  border-color: rgba(235, 240, 255, 0.55);
   box-shadow:
-    0 16px 44px rgba(20, 50, 90, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    0 20px 48px rgba(20, 30, 90, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .about-card h3 {
   font-size: 18px;
-  font-weight: 600;
-  color: #a8dff8;
+  font-weight: 700;
+  color: #f3ecff;
   margin: 0 0 10px;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 8px rgba(60, 30, 120, 0.35);
 }
 
 .about-card p {
   font-size: 15px;
-  color: #9ab8d8;
+  color: rgba(225, 218, 250, 0.88);
   line-height: 1.75;
   margin: 0;
 }
@@ -560,27 +637,42 @@ main {
 
 /* ── Jellyfish buttons ── */
 .btn-section {
-  padding: 60px 32px 120px;
+  padding: 72px 32px 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  border-top: 1px solid rgba(180, 150, 220, 0.2);
+  position: relative;
+}
+
+.btn-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 14%; right: 14%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(200, 200, 255, 0.22) 50%,
+    transparent);
+  pointer-events: none;
 }
 
 .quick-actions-title {
-  font-size: 32px;
+  font-family: 'Klephon', system-ui, sans-serif;
+  font-size: 38px;
   font-weight: 700;
-  margin: 0 0 6px;
-  background: linear-gradient(90deg, #b08adf, #6cb4f0);
+  margin: 0 0 8px;
+  letter-spacing: 0.4px;
+  background: linear-gradient(90deg, #ffffff 0%, #e8d8ff 50%, #b6c8f5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 2px 18px rgba(60, 30, 120, 0.4);
 }
 
 .quick-actions-sub {
-  margin: 0 0 36px;
-  color: #9ab8d8;
+  margin: 0 0 44px;
+  color: rgba(225, 218, 250, 0.78);
   font-size: 15px;
   letter-spacing: 0.02em;
 }
@@ -591,6 +683,7 @@ main {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
+  max-width: 880px;
 }
 
 .jellyfish {
@@ -614,20 +707,23 @@ main {
 
 /* Bell */
 .jelly-bell {
-  width: 220px;
-  height: 180px;
+  width: 200px;
+  height: 165px;
   border-radius: 50% 50% 40% 40% / 65% 65% 35% 35%;
-  background: radial-gradient(ellipse at 35% 30%,
-    rgba(255, 240, 255, 0.85),
-    rgba(210, 180, 255, 0.5) 50%,
-    rgba(170, 200, 255, 0.4)
+  background: radial-gradient(ellipse at 35% 28%,
+    rgba(255, 245, 255, 0.55) 0%,
+    rgba(210, 180, 255, 0.32) 45%,
+    rgba(140, 130, 220, 0.22) 80%,
+    rgba(110, 90, 200, 0.18) 100%
   );
-  border: 1.5px solid rgba(230, 200, 255, 0.8);
-  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(230, 215, 255, 0.55);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+          backdrop-filter: blur(14px) saturate(140%);
   box-shadow:
-    0 0 30px rgba(200, 160, 255, 0.3),
-    0 0 60px rgba(170, 200, 255, 0.2),
-    inset 0 -10px 20px rgba(180, 150, 255, 0.1);
+    0 0 38px rgba(170, 130, 240, 0.35),
+    0 0 70px rgba(120, 90, 220, 0.25),
+    inset 0 8px 20px rgba(255, 255, 255, 0.30),
+    inset 0 -14px 28px rgba(80, 50, 160, 0.25);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -660,14 +756,17 @@ main {
 }
 
 .jelly-graphic {
-  width: 76px;
-  height: 76px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(220, 200, 255, 0.5);
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(230, 220, 255, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.45),
+    0 4px 14px rgba(80, 50, 160, 0.25);
 }
 
 .jelly-graphic img {
@@ -678,10 +777,11 @@ main {
 }
 
 .jelly-label {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: #0e3850;
-  letter-spacing: 0.03em;
+  color: #2a1850;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 /* Tentacles */
@@ -717,10 +817,11 @@ main {
 
 .jellyfish:hover .jelly-bell {
   box-shadow:
-    0 0 50px rgba(200, 160, 255, 0.5),
-    0 0 90px rgba(170, 200, 255, 0.3),
-    inset 0 -10px 20px rgba(180, 150, 255, 0.15);
-  border-color: rgba(240, 220, 255, 0.95);
+    0 0 56px rgba(180, 140, 250, 0.55),
+    0 0 100px rgba(140, 110, 230, 0.35),
+    inset 0 8px 20px rgba(255, 255, 255, 0.40),
+    inset 0 -14px 28px rgba(80, 50, 160, 0.30);
+  border-color: rgba(245, 235, 255, 0.85);
 }
 
 /* ── Connect ── */
@@ -733,9 +834,30 @@ main {
 
 .connect-container {
   display: grid;
-  grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr);
-  gap: 40px;
+  /* Wider sidebar so the friend-item buttons (View / Message / Remove)
+     have enough room to sit on a single row without wrapping past the card. */
+  grid-template-columns: minmax(0, 2fr) minmax(360px, 1.15fr);
+  gap: 32px;
+  max-width: 1280px;
+  margin: 0 auto;
 }
+
+@media (max-width: 980px) {
+  .connect-container { grid-template-columns: 1fr; }
+}
+
+.connect-empty {
+  max-width: 520px;
+  margin: 80px auto;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(160, 120, 255, 0.24);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  padding: 36px;
+  color: #4a3387;
+}
+.connect-empty h2 { color: #4d2d8c; margin: 0 0 8px; }
 
 .connect-main {
   background: rgba(255, 255, 255, 0.32);
@@ -870,14 +992,16 @@ main {
 
 .friend-item {
   display: grid;
-  grid-template-columns: 50px 1fr;
+  grid-template-columns: 50px minmax(0, 1fr);
   gap: 14px;
-  align-items: center;
-  padding: 16px;
+  align-items: flex-start;
+  padding: 16px 18px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.18);
   border: 1px solid rgba(160, 120, 255, 0.16);
 }
+
+.friend-body { min-width: 0; }
 
 .friend-avatar-small {
   width: 50px;
@@ -904,8 +1028,9 @@ main {
 }
 
 .friend-actions {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -2181,10 +2306,10 @@ main {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
   padding-left: 6vw;
-  padding-bottom: 12vh;
+  padding-top: 7vh;
   z-index: 2;
   pointer-events: none;
 }
@@ -2598,32 +2723,35 @@ main {
   transform: translateX(-50%) translateY(-2px);
 }
 
-/* Seaweed — base style; per-instance position/size set inline */
+/* Seaweed — base style; per-instance position/size set inline.
+   z-index sits BELOW the sand layer so the plant bases are buried in the
+   sand instead of showing the PNG's hard bottom edge above the floor. */
 .bowl-seaweed {
   position: absolute;
   height: auto;
   pointer-events: none;
   user-select: none;
   transform-origin: bottom center;
-  animation: seaweed-sway 5.5s ease-in-out infinite alternate;
-  z-index: 3;
+  animation: seaweed-sway 6.5s ease-in-out infinite alternate;
+  filter: drop-shadow(0 4px 6px rgba(40, 70, 110, 0.20));
+  z-index: 1;
 }
 .seaweed-mirror { animation-name: seaweed-sway-mirror; }
 
 @keyframes seaweed-sway {
-  0%   { transform: rotate(-4deg); }
-  100% { transform: rotate( 4deg); }
+  0%   { transform: rotate(-2.5deg); }
+  100% { transform: rotate( 2.5deg); }
 }
 @keyframes seaweed-sway-mirror {
-  0%   { transform: scaleX(-1) rotate(-4deg); }
-  100% { transform: scaleX(-1) rotate( 4deg); }
+  0%   { transform: scaleX(-1) rotate(-2.5deg); }
+  100% { transform: scaleX(-1) rotate( 2.5deg); }
 }
 
 /* Sand layer — layered gradients + grain dots */
 .bowl-sand {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 17%;
+  height: 22%;
   background:
     /* tiny "grains" — multiple radial gradient stops at offset positions */
     radial-gradient(circle at 12%  60%, rgba(150, 110, 60, 0.35) 0.9px, transparent 1.4px),
@@ -2643,7 +2771,7 @@ main {
   background-size:
     24px 24px, 32px 32px, 28px 28px, 36px 36px, 30px 30px,
     100% 100%, 100% 100%, 100% 100%;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -3011,6 +3139,28 @@ main {
   isolation: isolate; /* contain stacking so caustics/particles don't leak out */
 }
 
+/* Soft "water surface" sheen behind the navbar — fades the top of the page
+   into a brighter band so the navbar pill looks like it's sitting on the
+   water rather than punched onto a flat gradient. */
+.home-aquarium-page::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 220px;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 80% 100% at 50% -10%,
+      rgba(255, 255, 255, 0.38) 0%,
+      rgba(220, 232, 255, 0.22) 35%,
+      rgba(200, 220, 250, 0.06) 70%,
+      transparent 100%),
+    linear-gradient(180deg,
+      rgba(245, 248, 255, 0.18) 0%,
+      rgba(220, 232, 255, 0.08) 55%,
+      transparent 100%);
+}
+
 /* Soft animated caustic streaks. Two layers offset in time + scale so they
    shimmer and never repeat in lockstep. */
 .aquarium-caustics {
@@ -3082,3 +3232,296 @@ main {
 /* Make sure the home page content sits ABOVE the caustics + particles */
 .home-aquarium-page > nav,
 .home-aquarium-page > main { position: relative; z-index: 3; }
+
+/* ════════════════════════════════════════════════════════
+   CONNECT — bubble pod
+   ════════════════════════════════════════════════════════ */
+.connect-tank-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 24px 96px;
+  position: relative;
+  z-index: 5;
+}
+
+.tank-header { text-align: center; margin: 0 0 32px; }
+.tank-header h2 {
+  font-family: 'Klephon', system-ui, sans-serif;
+  font-size: 44px;
+  margin: 0 0 10px;
+  color: #f1ecff;
+  text-shadow: 0 2px 14px rgba(60, 30, 120, 0.45);
+}
+.tank-header p {
+  margin: 0;
+  color: rgba(232, 222, 255, 0.85);
+  font-size: 15px;
+}
+.tank-header .inline-plus {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+  margin: 0 2px;
+  vertical-align: -4px;
+}
+.tank-hint { margin-top: 10px; font-size: 13px; color: rgba(220, 210, 255, 0.7); }
+.tank-hint.incoming { color: #ffc7e3; }
+
+.bubble-tank {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 44px 32px;
+  padding: 24px 8px;
+  min-height: 50vh;
+}
+
+.tank-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 24px;
+  color: rgba(225, 215, 255, 0.7);
+  font-size: 15px;
+}
+
+.person-bubble {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  background:
+    radial-gradient(circle at 30% 24%,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(220, 232, 255, 0.18) 38%,
+      rgba(170, 200, 250, 0.10) 70%,
+      rgba(150, 180, 240, 0.04) 100%);
+  border: 1.5px solid rgba(220, 232, 255, 0.40);
+  box-shadow:
+    inset 0 8px 18px rgba(255, 255, 255, 0.30),
+    inset 0 -10px 22px rgba(80, 60, 160, 0.18),
+    0 14px 32px rgba(40, 50, 130, 0.32);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  animation: person-bubble-bob ease-in-out infinite alternate;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  will-change: transform;
+}
+
+.person-bubble:hover {
+  transform: translate(0, -4px) scale(1.04);
+  box-shadow:
+    inset 0 8px 18px rgba(255, 255, 255, 0.45),
+    inset 0 -10px 22px rgba(80, 60, 160, 0.22),
+    0 22px 44px rgba(40, 50, 130, 0.45);
+  border-color: rgba(235, 240, 255, 0.65);
+}
+
+.person-bubble.incoming {
+  border-color: rgba(255, 190, 225, 0.65);
+  background:
+    radial-gradient(circle at 30% 24%,
+      rgba(255, 235, 248, 0.55) 0%,
+      rgba(255, 200, 230, 0.20) 40%,
+      rgba(220, 150, 200, 0.10) 75%);
+  box-shadow:
+    inset 0 8px 18px rgba(255, 235, 248, 0.35),
+    inset 0 -10px 22px rgba(180, 80, 150, 0.20),
+    0 18px 38px rgba(180, 80, 160, 0.40);
+}
+
+.person-bubble.sent {
+  opacity: 0.92;
+}
+
+/* Glass shines */
+.bubble-shine {
+  position: absolute;
+  top: 10%; left: 18%;
+  width: 32%; height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  filter: blur(1px);
+}
+.bubble-shine-sm {
+  position: absolute;
+  top: 22%; left: 50%;
+  width: 8%; height: 8%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  filter: blur(0.5px);
+}
+
+.bubble-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 78%;
+  z-index: 2;
+}
+
+.bubble-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b9a3f0, #7c5cd8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 19px;
+  box-shadow: 0 4px 12px rgba(60, 30, 120, 0.35);
+}
+
+.person-bubble.incoming .bubble-avatar {
+  background: linear-gradient(135deg, #ffadd1, #d87cb1);
+  box-shadow: 0 4px 12px rgba(180, 80, 150, 0.35);
+}
+
+.bubble-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #2a1850;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.bubble-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 2px;
+  max-width: 100%;
+}
+
+.bubble-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(124, 92, 216, 0.22);
+  color: #3d1f8a;
+  border: 1px solid rgba(124, 92, 216, 0.30);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bubble-tag.more {
+  background: rgba(124, 92, 216, 0.10);
+  color: #5a3fb0;
+}
+.person-bubble.incoming .bubble-tag {
+  background: rgba(216, 92, 168, 0.20);
+  color: #7e1a5a;
+  border-color: rgba(216, 92, 168, 0.35);
+}
+
+.bubble-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7e1a5a;
+  margin-top: 2px;
+  letter-spacing: 0.2px;
+}
+
+/* Floating + button — sits on the bubble's lower-right rim */
+.bubble-add {
+  position: absolute;
+  right: 6%;
+  bottom: 6%;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8a6ce6, #5e3fc4);
+  box-shadow:
+    0 6px 16px rgba(70, 40, 160, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.40);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  z-index: 3;
+}
+.bubble-add:hover {
+  transform: scale(1.12);
+  box-shadow:
+    0 8px 22px rgba(70, 40, 160, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.bubble-add.sent {
+  background: linear-gradient(135deg, #6db58c, #3d8e63);
+  box-shadow:
+    0 6px 16px rgba(40, 120, 80, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.40);
+}
+
+.bubble-accept-row {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+
+.bubble-mini {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.bubble-mini.accept {
+  background: linear-gradient(135deg, #6db58c, #3d8e63);
+  box-shadow: 0 4px 12px rgba(40, 120, 80, 0.45);
+}
+.bubble-mini.decline {
+  background: linear-gradient(135deg, #d88aa0, #b34d6e);
+  box-shadow: 0 4px 12px rgba(150, 50, 90, 0.40);
+}
+.bubble-mini:hover { transform: scale(1.12); }
+
+@keyframes person-bubble-bob {
+  0%   { transform: translate(0, 0)                                  rotate(0deg); }
+  100% { transform: translate(var(--bubble-dx, 0), var(--bubble-dy, 0)) rotate(var(--bubble-tilt, 0deg)); }
+}
+
+@media (max-width: 640px) {
+  .bubble-tank { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 28px 18px; }
+  .bubble-avatar { width: 38px; height: 38px; font-size: 16px; }
+  .bubble-name { font-size: 13px; }
+  .bubble-tag { font-size: 10px; }
+  .bubble-add { width: 32px; height: 32px; font-size: 18px; }
+}

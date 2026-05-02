@@ -407,18 +407,20 @@ function AccountModal({ session, accountInfo, onClose }) {
 }
 
 // ── Seaweed clumps along the bottom ──
-// Pairs of (src, position, size, mirror, delay) — varied sizes + a few overlaps
-// so the floor reads as a planted patch instead of a spaced-out trio.
+// Positions keep plants within the straight-ish central floor of the bowl.
+// `bottom` values are nudged so each base sits inside the sand layer instead
+// of floating above the curved-in bottom edge. Edge plants are smaller and
+// raised slightly to follow the bowl's curvature.
 const SEAWEEDS = [
-  { src: seaweedA, leftPct:  2,  size: 170, bottom:  0, mirror: false, delay: -1.2, op: 0.95 },
-  { src: seaweedB, leftPct: 12,  size: 130, bottom: -2, mirror: true,  delay: -2.1, op: 0.85 },
-  { src: seaweedA, leftPct: 22,  size: 200, bottom: -2, mirror: false, delay: -3.4, op: 0.92 },
-  { src: seaweedB, leftPct: 34,  size: 240, bottom: -3, mirror: false, delay: -3.0, op: 0.95 },
-  { src: seaweedA, leftPct: 46,  size: 145, bottom: -1, mirror: true,  delay: -4.5, op: 0.85 },
-  { src: seaweedB, leftPct: 56,  size: 200, bottom: -2, mirror: false, delay: -2.8, op: 0.93 },
-  { src: seaweedA, leftPct: 68,  size: 160, bottom: -2, mirror: true,  delay: -3.7, op: 0.88 },
-  { src: seaweedB, leftPct: 78,  size: 130, bottom: -1, mirror: false, delay: -1.5, op: 0.85 },
-  { src: seaweedA, leftPct: 88,  size: 180, bottom:  0, mirror: true,  delay: -4.0, op: 0.95 },
+  { src: seaweedA, leftPct: 14, size: 130, bottom: 6,  mirror: false, delay: -1.2, op: 0.82 },
+  { src: seaweedB, leftPct: 22, size: 150, bottom: 4,  mirror: true,  delay: -2.1, op: 0.86 },
+  { src: seaweedA, leftPct: 30, size: 195, bottom: 2,  mirror: false, delay: -3.4, op: 0.92 },
+  { src: seaweedB, leftPct: 40, size: 225, bottom: 1,  mirror: false, delay: -3.0, op: 0.94 },
+  { src: seaweedA, leftPct: 49, size: 145, bottom: 3,  mirror: true,  delay: -4.5, op: 0.85 },
+  { src: seaweedB, leftPct: 58, size: 205, bottom: 1,  mirror: false, delay: -2.8, op: 0.93 },
+  { src: seaweedA, leftPct: 68, size: 170, bottom: 2,  mirror: true,  delay: -3.7, op: 0.88 },
+  { src: seaweedB, leftPct: 76, size: 145, bottom: 4,  mirror: false, delay: -1.5, op: 0.84 },
+  { src: seaweedA, leftPct: 84, size: 130, bottom: 6,  mirror: true,  delay: -4.0, op: 0.82 },
 ]
 
 // ── The dots (3 sections: playlist / interests / resume) ──

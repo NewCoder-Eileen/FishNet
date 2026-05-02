@@ -88,11 +88,11 @@ export default function Navbar() {
         <div
           className="rounded-full pl-4 pr-2 py-2 w-full max-w-[760px] relative flex items-center"
           style={{
-            background: 'rgba(255, 255, 255, 0.45)',
-            backdropFilter: 'blur(14px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(14px) saturate(140%)',
-            border: '1px solid rgba(255, 255, 255, 0.45)',
-            boxShadow: '0 8px 24px rgba(40, 70, 110, 0.10)',
+            background: 'linear-gradient(180deg, rgba(232, 240, 255, 0.42) 0%, rgba(196, 218, 250, 0.28) 100%)',
+            backdropFilter: 'blur(18px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+            border: '1px solid rgba(220, 232, 255, 0.38)',
+            boxShadow: '0 10px 28px rgba(30, 60, 110, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.45)',
           }}
         >
           {/* Desktop nav — left-aligned, account cluster stays on the right */}
