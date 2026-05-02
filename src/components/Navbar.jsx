@@ -113,8 +113,11 @@ export default function Navbar() {
             boxShadow: '0 10px 28px rgba(30, 60, 110, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.45)',
           }}
         >
-          {/* Desktop nav — absolutely centered so it stays centered regardless of right cluster width */}
-          <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1 text-[14px] text-neutral-800">
+          {/* Left balance — desktop only, mirrors the right cluster so the nav stays truly centered */}
+          <div className="hidden md:block flex-1" />
+
+          {/* Desktop nav — sits between the two flex-1 spacers */}
+          <nav className="hidden md:flex flex-none items-center gap-1 text-[14px] text-neutral-800">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.label}
@@ -133,8 +136,8 @@ export default function Navbar() {
             </button>
           </nav>
 
-          {/* Right cluster */}
-          <div className="ml-auto flex items-center gap-2">
+          {/* Right cluster — flex-1 + justify-end on desktop so it mirrors the left spacer */}
+          <div className="ml-auto flex items-center gap-2 md:flex-1 md:ml-0 md:justify-end">
             {loggedIn && (
               <>
                 <button
