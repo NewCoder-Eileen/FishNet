@@ -2003,6 +2003,7 @@ main {
   align-items: center;
   justify-content: flex-start;
   padding-left: 6vw;
+  padding-bottom: 12vh;
   z-index: 2;
   pointer-events: none;
 }
@@ -2184,4 +2185,312 @@ main {
 
 @media (max-width: 600px) {
   .toast-stack { left: 16px; right: 16px; max-width: none; }
+}
+
+/* ── Profile fishbowl scene ────────────────────────────── */
+.profile-fishbowl-page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 96px 16px 32px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(150, 200, 250, 0.55), transparent 65%),
+    linear-gradient(to bottom, #cfe7f7, #aacde6 35%, #7fb1d7 80%);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-fishbowl {
+  position: relative;
+  width: min(960px, 94vw);
+  height: min(78vh, 760px);
+  border-radius: 48% 48% 50% 50% / 56% 56% 48% 48%;
+  overflow: hidden;
+  background: linear-gradient(to bottom, rgba(170, 220, 250, 0.92), rgba(70, 145, 200, 0.88));
+  box-shadow:
+    inset 0 -22px 50px rgba(40, 80, 120, 0.32),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    0 22px 60px rgba(60, 100, 150, 0.28),
+    0 6px 18px rgba(60, 100, 150, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.profile-fishbowl-water {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 18%, rgba(255,255,255,0.28), transparent 38%),
+    radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.14), transparent 55%);
+  pointer-events: none;
+}
+
+.bowl-fish-canvas {
+  position: absolute;
+  top: 8%; left: 10%;
+  width: 80%; height: 56%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.bowl-name-tag {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.bowl-username {
+  margin: 0;
+  font-size: clamp(20px, 3vw, 32px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 10px rgba(40, 70, 110, 0.5), 0 0 18px rgba(180, 220, 255, 0.4);
+}
+
+.bowl-display-name {
+  margin: 4px 0 0;
+  font-size: clamp(13px, 1.6vw, 16px);
+  color: rgba(255,255,255,0.85);
+  font-style: italic;
+  text-shadow: 0 1px 6px rgba(40, 70, 110, 0.45);
+}
+
+/* Seaweed at the bottom */
+.bowl-seaweed {
+  position: absolute;
+  bottom: -2%;
+  width: clamp(110px, 16vw, 200px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: bottom center;
+  animation: seaweed-sway 5.5s ease-in-out infinite alternate;
+  z-index: 3;
+}
+.seaweed-left   { left:  4%; animation-delay: -1.2s; }
+.seaweed-mid    { left: 38%; animation-delay: -3s;
+                  width: clamp(140px, 20vw, 240px); opacity: 0.92; }
+.seaweed-right  { right: 4%; animation-delay: -2.4s;
+                  transform: scaleX(-1); }
+
+@keyframes seaweed-sway {
+  0%   { transform: rotate(-4deg); }
+  100% { transform: rotate( 4deg); }
+}
+.seaweed-right { animation-name: seaweed-sway-mirror; }
+@keyframes seaweed-sway-mirror {
+  0%   { transform: scaleX(-1) rotate(-4deg); }
+  100% { transform: scaleX(-1) rotate( 4deg); }
+}
+
+/* Sand layer */
+.bowl-sand {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 14%;
+  background: linear-gradient(to bottom, rgba(220, 200, 160, 0) 0%, rgba(210, 190, 150, 0.65) 60%, rgba(200, 175, 125, 0.85) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Rocks */
+.bowl-rocks {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 18%;
+  z-index: 2;
+  pointer-events: none;
+}
+.rock {
+  position: absolute;
+  bottom: 4%;
+  border-radius: 50% 50% 30% 30% / 70% 70% 35% 35%;
+  background: linear-gradient(to bottom, #7e8c97, #4a5560);
+  box-shadow: inset 0 -6px 12px rgba(0,0,0,0.32), 0 4px 8px rgba(0,0,0,0.18);
+  display: block;
+}
+.rock-1 { left: 14%;  width: 10%; height: 36%; background: linear-gradient(to bottom, #6f808d, #3d4854); }
+.rock-2 { left: 32%;  width: 14%; height: 50%; background: linear-gradient(to bottom, #8a9aa6, #54616d); }
+.rock-3 { left: 48%;  width: 12%; height: 38%; background: linear-gradient(to bottom, #76858f, #424e58); }
+.rock-4 { left: 62%;  width: 16%; height: 56%; background: linear-gradient(to bottom, #93a3ad, #5b6772); }
+.rock-5 { left: 80%;  width:  9%; height: 32%; background: linear-gradient(to bottom, #6a7884, #394550); }
+
+/* Glowing info dots */
+.bowl-dot {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: transform 0.18s ease;
+  z-index: 6;
+}
+.bowl-dot:hover { transform: translate(-50%, -50%) scale(1.25); }
+.bowl-dot::before,
+.bowl-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.bowl-dot::before { animation: dot-pulse 2.4s ease-out infinite; }
+.bowl-dot::after  { animation: dot-pulse 2.4s ease-out infinite; animation-delay: -1.2s; }
+
+@keyframes dot-pulse {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  90%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.bowl-dot-blue {
+  background: radial-gradient(circle at 32% 28%, #d8efff 0%, #74bcff 45%, #2c83cf 100%);
+  box-shadow: 0 0 14px 3px rgba(120, 200, 255, 0.7), 0 0 28px 8px rgba(80, 160, 230, 0.4), inset 0 -2px 4px rgba(40, 80, 130, 0.45);
+}
+.bowl-dot-blue::before,
+.bowl-dot-blue::after { background: rgba(120, 200, 255, 0.55); }
+
+.bowl-dot-green {
+  background: radial-gradient(circle at 32% 28%, #d8ffe5 0%, #6fe5a0 45%, #2aae6c 100%);
+  box-shadow: 0 0 14px 3px rgba(140, 230, 180, 0.7), 0 0 28px 8px rgba(80, 200, 130, 0.4), inset 0 -2px 4px rgba(40, 100, 60, 0.45);
+}
+.bowl-dot-green::before,
+.bowl-dot-green::after { background: rgba(140, 230, 180, 0.55); }
+
+.bowl-dot-hint {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 6px rgba(40, 70, 110, 0.55);
+  z-index: 6;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.bowl-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 8;
+}
+.bowl-toolbar .glass-btn {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #2a4a72;
+}
+
+.bowl-saved-flash {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(72, 180, 130, 0.92);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 6px 22px rgba(40, 130, 90, 0.35);
+  z-index: 9;
+  animation: flash-in 0.25s ease both;
+}
+@keyframes flash-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0);    }
+}
+
+/* Section modal — uses .profile-modal styles, just ensures wider body */
+.section-modal {
+  max-width: 540px;
+}
+.section-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 8px 0 18px;
+}
+
+@media (max-width: 700px) {
+  .profile-fishbowl-page { padding-top: 80px; }
+  .profile-fishbowl       { height: min(82vh, 700px); }
+  .bowl-name-tag          { top: 12%; }
+  .bowl-username          { font-size: 22px; }
+  .bowl-toolbar           { top: 10px; right: 10px; }
+}
+
+/* ── Fish bowl (smaller picker) ── */
+.fishbowl {
+  position: relative;
+  margin: 0 auto;
+  border-radius: 48% 48% 50% 50% / 56% 56% 48% 48%;
+  overflow: hidden;
+  background:
+    linear-gradient(to bottom, rgba(170, 220, 250, 0.85), rgba(70, 145, 200, 0.78));
+  box-shadow:
+    inset 0 -16px 36px rgba(40, 80, 120, 0.32),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    0 18px 42px rgba(60, 100, 150, 0.22),
+    0 4px 12px rgba(60, 100, 150, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.fishbowl-canvas {
+  display: block;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.fishbowl-shine {
+  position: absolute;
+  top: 5%;
+  left: 9%;
+  width: 32%;
+  height: 26%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.38);
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fishbowl-water-line {
+  position: absolute;
+  bottom: -4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fishbowl-hint {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b53a3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

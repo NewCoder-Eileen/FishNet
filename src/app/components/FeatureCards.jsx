@@ -1,65 +1,51 @@
-import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import jellyfish from '../../assets/jellyfish.png'
-
-const ACCENT = '#7c5cd8'
+import jellyfishPink from '../../assets/jellyfish-pink.png'
+import jellyfishBlue from '../../assets/jellyfish-blue.png'
 
 const FEATURES = [
-  {
-    label:       'Profile',
-    description: 'Pick your fish, write your bio, link your socials.',
-    href:        '/profile',
-  },
-  {
-    label:       'Join Event',
-    description: 'Drop into a shared aquarium with everyone there.',
-    href:        '/join',
-  },
-  {
-    label:       'Connect',
-    description: 'Find friends and mutuals from your events.',
-    href:        '/connect',
-  },
+  { label: 'Profile',    href: '/profile', icon: jellyfishPink, glow: 'rgba(220, 130, 180, 0.45)' },
+  { label: 'Join Event', href: '/join',    icon: jellyfishBlue, glow: 'rgba(120, 140, 220, 0.45)' },
+  { label: 'Connect',    href: '/connect', icon: jellyfishPink, glow: 'rgba(220, 130, 180, 0.45)' },
 ]
 
+// Three large jellyfish that *are* the buttons — click the jellyfish itself
+// to navigate. No card chrome.
 export default function FeatureCards() {
   const navigate = useNavigate()
 
   return (
-    <div className="px-3 sm:px-4">
-      <div
-        className="rounded-3xl p-4 sm:p-6 w-full max-w-[880px] mx-auto"
-        style={{ backgroundColor: '#f5f2ee' }}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          {FEATURES.map(f => (
-            <button
-              key={f.label}
-              onClick={() => navigate(f.href)}
-              className="bg-white rounded-2xl p-5 flex flex-col gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <img
-                  src={jellyfish}
-                  alt=""
-                  className="w-14 h-14 object-contain"
-                  style={{ filter: 'drop-shadow(0 6px 12px rgba(124, 92, 216, 0.2))' }}
-                />
-                <span
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full"
-                  style={{ backgroundColor: ACCENT }}
-                >
-                  <ChevronRight size={14} className="text-white" />
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[16px] font-semibold text-neutral-900">{f.label}</span>
-                <span className="text-[13px] text-neutral-600 leading-snug">{f.description}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+    <div className="px-4">
+      <div className="flex flex-wrap items-end justify-center gap-8 sm:gap-14 max-w-[880px] mx-auto">
+        {FEATURES.map(f => (
+          <button
+            key={f.label}
+            onClick={() => navigate(f.href)}
+            className="jelly-btn group flex flex-col items-center gap-3 cursor-pointer bg-transparent border-0"
+            aria-label={f.label}
+          >
+            <img
+              src={f.icon}
+              alt=""
+              className="jelly-btn-img w-24 h-24 sm:w-32 sm:h-32 object-contain transition-transform duration-300 group-hover:-translate-y-1.5 group-hover:scale-105"
+              style={{ filter: `drop-shadow(0 10px 22px ${f.glow})` }}
+            />
+            <span className="text-[14px] sm:text-[15px] font-medium text-white tracking-wide drop-shadow">
+              {f.label}
+            </span>
+          </button>
+        ))}
       </div>
+
+      <style>{`
+        .jelly-btn-img { animation: jelly-bob 4.5s ease-in-out infinite; }
+        .jelly-btn:nth-child(2) .jelly-btn-img { animation-delay: -1.2s; }
+        .jelly-btn:nth-child(3) .jelly-btn-img { animation-delay: -2.6s; }
+        @keyframes jelly-bob {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-6px); }
+        }
+        .jelly-btn:hover .jelly-btn-img { animation-play-state: paused; }
+      `}</style>
     </div>
   )
 }

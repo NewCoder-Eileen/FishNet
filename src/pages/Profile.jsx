@@ -2,20 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadProfile, saveProfile } from '../lib/profile'
 import { getSession, changeUsername, changeEmail, login, getAccountInfo } from '../lib/auth'
-import { FISH_STYLES, getStyle, drawFish } from '../aquarium/fishStyles'
-import { MOCK_PROFILES } from '../data/mockProfiles'
-import BubbleBackground from '../components/BubbleBackground'
+import { getStyle, drawFish } from '../aquarium/fishStyles'
+import FishBowl from '../components/FishBowl'
+import seaweedA from '../assets/seaweed-a.png'
+import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
 
 const SOCIALS = [
   { key: 'github',   label: 'GitHub',       placeholder: 'https://github.com/yourusername' },
-  { key: 'linkedin', label: 'LinkedIn',      placeholder: 'https://linkedin.com/in/yourusername' },
-  { key: 'twitter',  label: 'Twitter / X',   placeholder: 'https://x.com/yourusername' },
-  { key: 'devpost',  label: 'Devpost',       placeholder: 'https://devpost.com/yourusername' },
-  { key: 'website',  label: 'Personal Site', placeholder: 'https://yourname.com' },
-  { key: 'email',    label: 'Email',         placeholder: 'you@example.com' },
+  { key: 'linkedin', label: 'LinkedIn',     placeholder: 'https://linkedin.com/in/yourusername' },
+  { key: 'twitter',  label: 'Twitter / X',  placeholder: 'https://x.com/yourusername' },
+  { key: 'devpost',  label: 'Devpost',      placeholder: 'https://devpost.com/yourusername' },
+  { key: 'website',  label: 'Personal Site',placeholder: 'https://yourname.com' },
+  { key: 'email',    label: 'Email',        placeholder: 'you@example.com' },
 ]
 
+// ── Tag input (interests / goals) ──
 function TagInput({ value, onChange, placeholder }) {
   const [draft, setDraft] = useState('')
   const tags = value || []
@@ -46,55 +48,115 @@ function TagInput({ value, onChange, placeholder }) {
   )
 }
 
-function FishPreview({ styleId, width = 200, height = 110 }) {
-  const ref = useRef(null)
+// ── Single fish swimming inside the bowl ──
+function BowlFish({ styleId }) {
+  const canvasRef = useRef(null)
+
   useEffect(() => {
-    const canvas = ref.current
+    const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, width, height)
-    const bg = ctx.createLinearGradient(0, 0, 0, height)
-    bg.addColorStop(0, 'rgba(100, 180, 240, 0.22)')
-    bg.addColorStop(1, 'rgba(40, 80, 160, 0.32)')
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height)
-    const style = getStyle(styleId)
-    drawFish(ctx, {
-      x: width / 2, y: height * 0.58, angle: 0, tailPhase: 0.5,
-      scale: width / 130,
-      styleId: style.id,
-    })
-  }, [styleId, width, height])
-  return <canvas ref={ref} width={width} height={height} className="fish-preview-canvas" />
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+    function resize() {
+      const W = canvas.clientWidth
+      const H = canvas.clientHeight
+      canvas.width  = W * dpr
+      canvas.height = H * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      return { W, H }
+    }
+    let { W, H } = resize()
+
+    const fish = {
+      styleId,
+      x: W / 2, y: H * 0.45,
+      vx: 0, vy: 0,
+      angle: 0,
+      tailPhase: 0,
+      scale: 1.6,
+      targetX: W / 2, targetY: H * 0.45,
+      targetTimer: 0,
+    }
+    function aim() {
+      fish.targetX = W * 0.22 + Math.random() * W * 0.56
+      fish.targetY = H * 0.20 + Math.random() * H * 0.45
+      fish.targetTimer = 140 + Math.random() * 240
+    }
+    aim()
+
+    let raf = 0
+    function loop() {
+      ctx.clearRect(0, 0, W, H)
+      const dx = fish.targetX - fish.x
+      const dy = fish.targetY - fish.y
+      const d  = Math.hypot(dx, dy) || 0.001
+      fish.vx += (dx / d) * 0.04
+      fish.vy += (dy / d) * 0.04
+      fish.vx *= 0.93
+      fish.vy *= 0.93
+      const v = Math.hypot(fish.vx, fish.vy)
+      if (v > 0.65) { fish.vx = (fish.vx / v) * 0.65; fish.vy = (fish.vy / v) * 0.65 }
+      fish.x += fish.vx
+      fish.y += fish.vy
+      if (v > 0.05) fish.angle = Math.atan2(fish.vy, fish.vx)
+      fish.tailPhase += 0.08 + v * 0.05
+      fish.targetTimer -= 1
+      if (d < 16 || fish.targetTimer <= 0) aim()
+      drawFish(ctx, fish)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+
+    function onResize() { ({ W, H } = resize()); aim() }
+    window.addEventListener('resize', onResize)
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize) }
+  }, [styleId])
+
+  return <canvas ref={canvasRef} className="bowl-fish-canvas" aria-hidden />
 }
 
+// ── Generic section editor modal ──
+function SectionModal({ title, onClose, onSave, children }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="profile-modal-overlay" onClick={onClose}>
+      <div className="profile-modal section-modal" onClick={e => e.stopPropagation()}>
+        <button className="close-modal glass-btn" onClick={onClose} aria-label="Close">×</button>
+        <div className="modal-header">
+          <h2>{title}</h2>
+        </div>
+        <div className="section-modal-body">{children}</div>
+        <div className="modal-actions">
+          <button className="join-btn-primary" onClick={onSave}>Save</button>
+          <button className="glass-btn" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Fish-picker modal (the smaller bowl with all 8 fish) ──
 function FishEditModal({ fish, updateFish, onSave, onClose }) {
+  const selectedStyle = getStyle(fish.styleId)
   return (
     <div className="fish-edit-modal-overlay" onClick={onClose}>
       <div className="fish-edit-modal" onClick={e => e.stopPropagation()}>
         <button className="fish-modal-close" onClick={onClose}>×</button>
-        <h2 className="join-title" style={{ marginBottom: 4 }}>Edit Your Fish</h2>
-        <p className="join-desc" style={{ marginBottom: 12 }}>Choose your look in the aquarium.</p>
+        <h2 className="join-title" style={{ marginBottom: 4 }}>Pick Your Fish</h2>
+        <p className="join-desc" style={{ marginBottom: 12 }}>Tap a fish to make it yours.</p>
 
-        <FishPreview styleId={fish.styleId} />
+        <FishBowl
+          selectedStyleId={fish.styleId}
+          onSelect={(id) => updateFish('styleId', id)}
+        />
 
-        <p className="acc-section-label">Style</p>
-        <div className="fish-style-grid">
-          {FISH_STYLES.map(s => (
-            <button key={s.id} type="button"
-              className={`fish-style-card${fish.styleId === s.id ? ' selected' : ''}`}
-              onClick={() => updateFish('styleId', s.id)}>
-              <div className="fish-style-swatch">
-                <img
-                  src={s.image}
-                  alt={s.label}
-                  className="fish-style-img"
-                  style={{ transform: s.naturalFacing === 'left' ? 'scaleX(-1)' : 'none' }}
-                />
-              </div>
-              <span className="fish-style-label">{s.label}</span>
-            </button>
-          ))}
-        </div>
+        <p className="fishbowl-hint">Selected: {selectedStyle.label}</p>
 
         <button className="join-btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={onSave}>
           Save Changes
@@ -104,51 +166,17 @@ function FishEditModal({ fish, updateFish, onSave, onClose }) {
   )
 }
 
-export default function Profile() {
-  const navigate    = useNavigate()
-  const session     = getSession()
-  const accountInfo = session ? getAccountInfo(session.username) : null
-
-  const [profile, setProfile] = useState(loadProfile)
-  const [saved, setSaved]     = useState(false)
-  const [fishEditOpen, setFishEditOpen] = useState(false)
-
-  // ── Username edit ──
-  const [usernameMode, setUsernameMode]         = useState('idle')
-  const [newUsername, setNewUsername]           = useState('')
+// ── Account credentials modal (username + email change) ──
+function AccountModal({ session, accountInfo, onClose }) {
+  const [usernameMode,     setUsernameMode]     = useState('idle')
+  const [newUsername,      setNewUsername]      = useState('')
   const [usernamePassword, setUsernamePassword] = useState('')
-  const [usernameError, setUsernameError]       = useState('')
-
-  // ── Email change ──
-  const [emailStep, setEmailStep]         = useState(0)
-  const [emailPassword, setEmailPassword] = useState('')
-  const [newEmail, setNewEmail]           = useState('')
-  const [confirmEmail, setConfirmEmail]   = useState('')
-  const [emailError, setEmailError]       = useState('')
-
-  function updateField(field, value) { setProfile(p => ({ ...p, [field]: value })) }
-  function updateFish(key, value)    { setProfile(p => ({ ...p, fish: { ...(p.fish || {}), [key]: value } })) }
-  function updateSocial(key, value)  { setProfile(p => ({ ...p, socials: { ...p.socials, [key]: value } })) }
-  function toggleConnection(id) {
-    setProfile(p => {
-      const list = p.connections || []
-      return { ...p, connections: list.includes(id) ? list.filter(x => x !== id) : [...list, id] }
-    })
-  }
-  function addCustomLink() { setProfile(p => ({ ...p, customLinks: [...p.customLinks, { label: '', url: '' }] })) }
-  function updateCustomLink(idx, field, value) {
-    setProfile(p => ({ ...p, customLinks: p.customLinks.map((l, i) => i === idx ? { ...l, [field]: value } : l) }))
-  }
-  function removeCustomLink(idx) {
-    setProfile(p => ({ ...p, customLinks: p.customLinks.filter((_, i) => i !== idx) }))
-  }
-
-  function handleSave() { saveProfile(profile); setSaved(true); setTimeout(() => setSaved(false), 2000) }
-
-  function handleFishSave() {
-    handleSave()
-    setFishEditOpen(false)
-  }
+  const [usernameError,    setUsernameError]    = useState('')
+  const [emailStep,        setEmailStep]        = useState(0)
+  const [emailPassword,    setEmailPassword]    = useState('')
+  const [newEmail,         setNewEmail]         = useState('')
+  const [confirmEmail,     setConfirmEmail]     = useState('')
+  const [emailError,       setEmailError]       = useState('')
 
   function handleUsernameConfirm() {
     if (!session) return
@@ -156,55 +184,30 @@ export default function Profile() {
     if (!result.ok) { setUsernameError(result.error); return }
     setUsernameMode('idle'); setUsernamePassword(''); setUsernameError('')
   }
-
   function handleEmailVerify() {
     if (!session) return
     const result = login(session.username, emailPassword)
     if (!result.ok) { setEmailError('Incorrect password.'); return }
     setEmailError(''); setEmailStep(2)
   }
-
   function handleEmailConfirm() {
     if (!session) return
-    if (!newEmail)             { setEmailError('Email cannot be empty.'); return }
-    if (newEmail !== confirmEmail) { setEmailError("Emails don't match."); return }
+    if (!newEmail)                  { setEmailError('Email cannot be empty.'); return }
+    if (newEmail !== confirmEmail)  { setEmailError("Emails don't match."); return }
     const result = changeEmail(session.username, emailPassword, newEmail)
     if (!result.ok) { setEmailError(result.error); return }
     setEmailStep(3); setEmailPassword(''); setNewEmail(''); setConfirmEmail(''); setEmailError('')
   }
 
-  const fish = profile.fish || {}
-
   return (
-    <div className="profile-page">
-      <BubbleBackground count={12} />
+    <div className="profile-modal-overlay" onClick={onClose}>
+      <div className="profile-modal section-modal" onClick={e => e.stopPropagation()}>
+        <button className="close-modal glass-btn" onClick={onClose} aria-label="Close">×</button>
+        <div className="modal-header"><h2>Account</h2></div>
 
-      <button className="join-back" onClick={() => navigate('/')}>← Back</button>
-      <div className="profile-container">
-
-        {/* ── Fish avatar header ── */}
-        <div className="profile-fish-header">
-          <div className="profile-fish-avatar" onClick={() => setFishEditOpen(true)}
-            title="Click to edit your fish">
-            <FishPreview styleId={fish.styleId} width={160} height={90} />
-            <div className="fish-edit-overlay">
-              <span className="fish-edit-icon">✏️</span>
-              <span className="fish-edit-label">Edit Fish</span>
-            </div>
-          </div>
-          <div className="profile-fish-info">
-            <p className="profile-fish-username">@{session?.username || '—'}</p>
-            <p className="profile-fish-nick">{profile.name || <em style={{ opacity: 0.5 }}>No nickname</em>}</p>
-          </div>
-        </div>
-
-        {/* ── Account ── */}
-        <div className="profile-card">
-          <h1 className="join-title profile-card-title">Account</h1>
-          <p className="join-desc profile-card-desc">Manage your login credentials.</p>
-
+        <div className="section-modal-body">
           <div className="profile-field">
-            <span>Username <span className="field-note">(your unique login ID — not your email)</span></span>
+            <span>Username <span className="field-note">(your unique login ID)</span></span>
             {usernameMode === 'idle' ? (
               <div className="cred-row">
                 <span className="cred-display">@{session?.username || '—'}</span>
@@ -230,7 +233,7 @@ export default function Profile() {
           </div>
 
           <div className="profile-field">
-            <span>Email <span className="field-note">(for account recovery — not used to log in)</span></span>
+            <span>Email <span className="field-note">(for account recovery)</span></span>
             {emailStep === 0 && (
               <div className="cred-row">
                 <span className="cred-display">{accountInfo?.email || <em className="field-note">Not set</em>}</span>
@@ -245,9 +248,7 @@ export default function Profile() {
                 {emailError && <p className="field-error">{emailError}</p>}
                 <div className="cred-actions">
                   <button className="join-btn-primary cred-confirm-btn" onClick={handleEmailVerify}>Next</button>
-                  <button className="glass-btn" onClick={() => {
-                    setEmailStep(0); setEmailError(''); setEmailPassword('')
-                  }}>Cancel</button>
+                  <button className="glass-btn" onClick={() => { setEmailStep(0); setEmailError(''); setEmailPassword('') }}>Cancel</button>
                 </div>
               </div>
             )}
@@ -274,91 +275,213 @@ export default function Profile() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
 
-        {/* ── Identity ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Identity</h2>
-          <p className="join-desc profile-card-desc">How others see you.</p>
+// ── The dots (categories shown over the rocks/seaweed) ──
+const DOTS = [
+  { id: 'about',     label: 'About',     color: 'blue',  top: '78%', left: '24%' },
+  { id: 'contact',   label: 'Contact',   color: 'green', top: '83%', left: '40%' },
+  { id: 'interests', label: 'Interests', color: 'blue',  top: '76%', left: '55%' },
+  { id: 'resume',    label: 'Resume',    color: 'green', top: '82%', left: '70%' },
+  { id: 'spotify',   label: 'Spotify',   color: 'blue',  top: '70%', left: '85%' },
+]
+
+// ── Page ──
+export default function Profile() {
+  const navigate    = useNavigate()
+  const session     = getSession()
+  const accountInfo = session ? getAccountInfo(session.username) : null
+
+  const [profile, setProfile]           = useState(loadProfile)
+  const [draft, setDraft]               = useState(null)         // working copy while a modal is open
+  const [openSection, setOpenSection]   = useState(null)         // dot id currently open
+  const [fishEditOpen, setFishEditOpen] = useState(false)
+  const [accountOpen, setAccountOpen]   = useState(false)
+  const [savedFlash, setSavedFlash]     = useState(false)
+
+  function startEdit(section) {
+    setDraft({ ...profile, socials: { ...(profile.socials || {}) }, customLinks: [...(profile.customLinks || [])] })
+    setOpenSection(section)
+  }
+
+  function commit() {
+    if (!draft) return
+    saveProfile(draft)
+    setProfile(draft)
+    setDraft(null)
+    setOpenSection(null)
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 1800)
+  }
+
+  function cancel() {
+    setDraft(null)
+    setOpenSection(null)
+  }
+
+  // Fish picker reads/writes directly to live profile (no modal-draft roundtrip).
+  function updateFish(key, value) {
+    setProfile(p => ({ ...p, fish: { ...(p.fish || {}), [key]: value } }))
+  }
+  function handleFishSave() {
+    saveProfile(profile)
+    setFishEditOpen(false)
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 1800)
+  }
+
+  const fish = profile.fish || {}
+
+  return (
+    <div className="profile-fishbowl-page">
+      <button className="join-back" onClick={() => navigate('/')}>← Back</button>
+
+      <div className="profile-fishbowl">
+        {/* Water + glass shine */}
+        <div className="profile-fishbowl-water" />
+        <div className="fishbowl-shine" aria-hidden />
+        <div className="fishbowl-water-line" aria-hidden />
+
+        {/* Fish swimming */}
+        <BowlFish styleId={fish.styleId} />
+
+        {/* Username overlay */}
+        <div className="bowl-name-tag">
+          <p className="bowl-username">@{session?.username || 'guest'}</p>
+          {profile.name && <p className="bowl-display-name">{profile.name}</p>}
+        </div>
+
+        {/* Seaweed */}
+        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-left"   aria-hidden />
+        <img src={seaweedB} alt="" className="bowl-seaweed seaweed-mid"    aria-hidden />
+        <img src={seaweedA} alt="" className="bowl-seaweed seaweed-right"  aria-hidden />
+
+        {/* Sand + rocks */}
+        <div className="bowl-sand" aria-hidden />
+        <div className="bowl-rocks" aria-hidden>
+          <span className="rock rock-1" />
+          <span className="rock rock-2" />
+          <span className="rock rock-3" />
+          <span className="rock rock-4" />
+          <span className="rock rock-5" />
+        </div>
+
+        {/* Glowing info dots */}
+        {DOTS.map(d => (
+          <button
+            key={d.id}
+            className={`bowl-dot bowl-dot-${d.color}`}
+            style={{ top: d.top, left: d.left }}
+            onClick={() => startEdit(d.id)}
+            aria-label={d.label}
+            title={d.label}
+          />
+        ))}
+
+        <p className="bowl-dot-hint">↓ Tap a glowing dot to view or edit ↓</p>
+
+        {/* Bottom toolbar (edit fish + account) */}
+        <div className="bowl-toolbar">
+          <button className="glass-btn" onClick={() => setFishEditOpen(true)}>🐟 Pick fish</button>
+          <button className="glass-btn" onClick={() => setAccountOpen(true)}>⚙ Account</button>
+        </div>
+
+        {savedFlash && <div className="bowl-saved-flash">✓ Saved</div>}
+      </div>
+
+      {/* ── Section modals ── */}
+      {openSection === 'about' && draft && (
+        <SectionModal title="About" onClose={cancel} onSave={commit}>
           <label className="profile-field">
-            <span>Nickname <span className="field-note">(display name — easy to change)</span></span>
-            <input className="profile-input" value={profile.name}
-              onChange={e => updateField('name', e.target.value)} placeholder="Your display name" />
+            <span>Nickname</span>
+            <input className="profile-input" value={draft.name}
+              onChange={e => setDraft({ ...draft, name: e.target.value })}
+              placeholder="Your display name" />
           </label>
           <label className="profile-field">
             <span>Bio</span>
-            <textarea className="profile-input profile-textarea" value={profile.bio}
-              onChange={e => updateField('bio', e.target.value)}
-              placeholder="Builder, hacker, fish enthusiast..." rows={3} />
+            <textarea className="profile-input profile-textarea" value={draft.bio}
+              onChange={e => setDraft({ ...draft, bio: e.target.value })}
+              placeholder="Builder, hacker, fish enthusiast..." rows={4} />
           </label>
-        </div>
+        </SectionModal>
+      )}
 
-        {/* ── Interests ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Interests</h2>
-          <p className="join-desc profile-card-desc">Tags that describe what you build, study, or care about.</p>
-          <TagInput value={profile.interests} onChange={tags => updateField('interests', tags)} placeholder="ai, design, climate..." />
-        </div>
-
-        {/* ── Looking For ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Looking For</h2>
-          <p className="join-desc profile-card-desc">What kind of people you want to meet.</p>
-          <TagInput value={profile.goals} onChange={tags => updateField('goals', tags)} placeholder="cofounder, internship, mentor..." />
-        </div>
-
-        {/* ── Network ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Network</h2>
-          <p className="join-desc profile-card-desc">Tap people you already know.</p>
-          <div className="connection-grid">
-            {MOCK_PROFILES.map(p => {
-              const isOn = (profile.connections || []).includes(p.id)
-              return (
-                <button key={p.id} type="button"
-                  className={`connection-pill${isOn ? ' on' : ''}`}
-                  onClick={() => toggleConnection(p.id)}>
-                  {p.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ── Socials ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Socials</h2>
-          <p className="join-desc profile-card-desc">Paste in your profile URLs.</p>
+      {openSection === 'contact' && draft && (
+        <SectionModal title="Contact" onClose={cancel} onSave={commit}>
           {SOCIALS.map(s => (
             <label key={s.key} className="profile-field">
               <span>{s.label}</span>
-              <input className="profile-input" value={profile.socials[s.key] || ''}
-                onChange={e => updateSocial(s.key, e.target.value)} placeholder={s.placeholder} />
+              <input className="profile-input"
+                value={draft.socials?.[s.key] || ''}
+                onChange={e => setDraft({ ...draft, socials: { ...draft.socials, [s.key]: e.target.value } })}
+                placeholder={s.placeholder} />
             </label>
           ))}
-        </div>
+        </SectionModal>
+      )}
 
-        {/* ── Other Links ── */}
-        <div className="profile-card">
-          <h2 className="join-title profile-card-title">Other Links</h2>
-          <p className="join-desc profile-card-desc">Portfolio, blog, anything else.</p>
-          {profile.customLinks.map((link, idx) => (
-            <div key={idx} className="profile-custom-row">
-              <input className="profile-input profile-custom-label" value={link.label}
-                onChange={e => updateCustomLink(idx, 'label', e.target.value)} placeholder="Label" />
-              <input className="profile-input profile-custom-url" value={link.url}
-                onChange={e => updateCustomLink(idx, 'url', e.target.value)} placeholder="https://..." />
-              <button type="button" className="profile-remove-btn"
-                onClick={() => removeCustomLink(idx)} aria-label="Remove">×</button>
-            </div>
-          ))}
-          <button type="button" className="join-btn-create" onClick={addCustomLink}>+ Add a link</button>
-        </div>
+      {openSection === 'interests' && draft && (
+        <SectionModal title="Interests & Looking For" onClose={cancel} onSave={commit}>
+          <div className="profile-field">
+            <span>Interests <span className="field-note">(what you build, study, care about)</span></span>
+            <TagInput value={draft.interests} onChange={tags => setDraft({ ...draft, interests: tags })} placeholder="ai, design, climate..." />
+          </div>
+          <div className="profile-field">
+            <span>Looking For <span className="field-note">(who you want to meet)</span></span>
+            <TagInput value={draft.goals} onChange={tags => setDraft({ ...draft, goals: tags })} placeholder="cofounder, internship, mentor..." />
+          </div>
+        </SectionModal>
+      )}
 
-        <button className="join-btn-primary profile-save" onClick={handleSave}>
-          {saved ? '✓ Saved' : 'Save Profile'}
-        </button>
+      {openSection === 'resume' && draft && (
+        <SectionModal title="Resume & Links" onClose={cancel} onSave={commit}>
+          <label className="profile-field">
+            <span>Resume</span>
+            <input className="profile-input" value={draft.resume || ''}
+              onChange={e => setDraft({ ...draft, resume: e.target.value })}
+              placeholder="https://link-to-your-resume" />
+          </label>
+          <div className="profile-field">
+            <span>Other Links <span className="field-note">(portfolio, blog, anything else)</span></span>
+            {(draft.customLinks || []).map((link, idx) => (
+              <div key={idx} className="profile-custom-row">
+                <input className="profile-input profile-custom-label" value={link.label}
+                  onChange={e => setDraft({ ...draft, customLinks: draft.customLinks.map((l, i) => i === idx ? { ...l, label: e.target.value } : l) })}
+                  placeholder="Label" />
+                <input className="profile-input profile-custom-url" value={link.url}
+                  onChange={e => setDraft({ ...draft, customLinks: draft.customLinks.map((l, i) => i === idx ? { ...l, url: e.target.value } : l) })}
+                  placeholder="https://..." />
+                <button type="button" className="profile-remove-btn"
+                  onClick={() => setDraft({ ...draft, customLinks: draft.customLinks.filter((_, i) => i !== idx) })} aria-label="Remove">×</button>
+              </div>
+            ))}
+            <button type="button" className="join-btn-create"
+              onClick={() => setDraft({ ...draft, customLinks: [...(draft.customLinks || []), { label: '', url: '' }] })}>
+              + Add a link
+            </button>
+          </div>
+        </SectionModal>
+      )}
 
-      </div>
+      {openSection === 'spotify' && draft && (
+        <SectionModal title="Spotify Playlist" onClose={cancel} onSave={commit}>
+          <label className="profile-field">
+            <span>Playlist URL</span>
+            <input className="profile-input" value={draft.spotifyPlaylist || ''}
+              onChange={e => setDraft({ ...draft, spotifyPlaylist: e.target.value })}
+              placeholder="https://open.spotify.com/playlist/..." />
+          </label>
+          {draft.spotifyPlaylist && (
+            <p className="field-note-block">
+              Preview: <a href={draft.spotifyPlaylist} target="_blank" rel="noreferrer" className="link">{draft.spotifyPlaylist}</a>
+            </p>
+          )}
+        </SectionModal>
+      )}
 
       {fishEditOpen && (
         <FishEditModal
@@ -366,6 +489,14 @@ export default function Profile() {
           updateFish={updateFish}
           onSave={handleFishSave}
           onClose={() => setFishEditOpen(false)}
+        />
+      )}
+
+      {accountOpen && (
+        <AccountModal
+          session={session}
+          accountInfo={accountInfo}
+          onClose={() => setAccountOpen(false)}
         />
       )}
     </div>

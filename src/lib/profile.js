@@ -8,6 +8,8 @@ export const EMPTY_PROFILE = {
   interests: [],
   goals: [],
   connections: [],
+  resume: '',
+  spotifyPlaylist: '',
   fish: { styleId: 'clownfish' },
 }
 
