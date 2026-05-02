@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import Navbar from './components/Navbar'
 import './App.css'
 
 const FRIENDS = [
@@ -51,15 +52,17 @@ function Connect() {
   }
 
   return (
-    <main>
-      <section className="connect-section">
-        <div className="bubble"></div>
-        <div className="bubble"></div>
-        <div className="bubble"></div>
-        <div className="bubble"></div>
-        <div className="bubble"></div>
-        <div className="bubble"></div>
-        <div className="connect-container">
+    <>
+      <Navbar />
+      <main>
+        <section className="connect-section">
+          <div className="bubble"></div>
+          <div className="bubble"></div>
+          <div className="bubble"></div>
+          <div className="bubble"></div>
+          <div className="bubble"></div>
+          <div className="bubble"></div>
+          <div className="connect-container">
           <div className="connect-main">
             <h2>Connect</h2>
             <p>Find friends by username.</p>
@@ -79,7 +82,10 @@ function Connect() {
                     <strong>Match found:</strong>
                     <p>{foundFriend.displayName} — {foundFriend.description}</p>
                     <p>Mutual friends: {foundFriend.mutualFriends.join(', ')}</p>
-                    <button className="glass-btn" onClick={() => openProfile(foundFriend)}>View Profile</button>
+                    <div className="search-result-actions">
+                      <button className="glass-btn" onClick={() => openProfile(foundFriend)}>View Profile</button>
+                      <button className="glass-btn" onClick={() => addFriend(foundFriend.username)}>Add Friend</button>
+                    </div>
                   </>
                 ) : (
                   <p className="no-match">No matching username found. Try another name.</p>
@@ -87,7 +93,7 @@ function Connect() {
               </div>
             ) : (
               <div className="connect-hint">
-                Enter a username to search for a friend.
+                Search by username to find a friend and then add them by clicking Add Friend.
               </div>
             )}
 

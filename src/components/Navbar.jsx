@@ -4,7 +4,7 @@ const NAV_LINKS = [
   { label: 'Home',       href: '/' },
   { label: 'Profile',    href: '/profile' },
   { label: 'Join Event', href: '/join' },
-  { label: 'Connect',    href: '/#connect' },
+  { label: 'Connect',    href: '/connect' },
   { label: 'About',      href: '/#about' },
   { label: 'Privacy',    href: '/#privacy' },
 ]

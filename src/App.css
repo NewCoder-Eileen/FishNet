@@ -538,7 +538,7 @@ main {
 
 .connect-container {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr);
   gap: 40px;
 }
 
@@ -583,8 +583,6 @@ main {
 
 .connect-search input {
   width: 100%;
-  max-width: 88%;
-  margin-right: auto;
   padding: 18px 20px;
   border-radius: 18px;
   border: 1px solid rgba(160, 120, 255, 0.28);
@@ -655,6 +653,13 @@ main {
   cursor: pointer;
   font-size: 14px;
   margin-right: 8px;
+}
+
+.search-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .connect-result button:hover,
@@ -776,15 +781,14 @@ main {
 
 .close-modal {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  left: auto;
+  top: 16px;
+  right: 16px;
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(160, 120, 255, 0.3);
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
   color: #4d2d8c;
   display: flex;
@@ -792,6 +796,7 @@ main {
   justify-content: center;
   backdrop-filter: blur(8px);
   transition: all 0.3s ease;
+  padding: 0;
 }
 
 .close-modal:hover {
