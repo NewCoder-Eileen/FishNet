@@ -1,5 +1,5 @@
 import { db } from './firebase'
-import { ref as dbRef, get, set, remove, onValue, update } from 'firebase/database'
+import { ref as dbRef, get, remove, onValue, update } from 'firebase/database'
 
 function encodeKey(k) {
   return (k || '').toLowerCase().replace(/[.#$[\]/]/g, '_')
@@ -45,4 +45,12 @@ export async function acceptRequest(me, target) {
     [`relations/${encodeKey(me)}/${encodeKey(target)}`]:    'friend',
     [`relations/${encodeKey(target)}/${encodeKey(me)}`]:    'friend',
   })
+}
+
+// Subscribe to the relation status between two specific users.
+// Calls onChange with: null | 'pending_out' | 'pending_in' | 'friend'
+export function subscribeRelation(myUsername, otherUsername, onChange) {
+  if (!myUsername || !otherUsername) { onChange(null); return () => {} }
+  const r = relPath(myUsername, otherUsername)
+  return onValue(r, snap => onChange(snap.exists() ? snap.val() : null))
 }
