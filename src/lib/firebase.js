@@ -10,6 +10,7 @@ import { getDatabase } from 'firebase/database'
 const firebaseConfig = {
   apiKey:            'AIzaSyCCUeSckyAt51woRNvhF0khHoEZfS180Is',
   authDomain:        'fishnet-72781.firebaseapp.com',
+  databaseURL:       'https://fishnet-72781-default-rtdb.firebaseio.com',
   projectId:         'fishnet-72781',
   storageBucket:     'fishnet-72781.firebasestorage.app',
   messagingSenderId: '439845806007',
