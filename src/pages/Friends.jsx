@@ -55,7 +55,6 @@ function buildCard(encKey, accountsMap, profilesMap) {
 function ChatModal({ me, partner, onClose }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft]       = useState('')
-  const [sending, setSending]   = useState(false)
   const scrollRef = useRef(null)
 
   const dmId = me && partner?.encKey ? getDmId(me, partner.encKey) : null
@@ -78,20 +77,12 @@ function ChatModal({ me, partner, onClose }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
-  async function handleSend(e) {
+  function handleSend(e) {
     e?.preventDefault?.()
     const text = draft.trim()
-    if (!text || sending) return
-    setSending(true)
+    if (!text) return
+    sendDm(partner.encKey, partner.displayName, text)
     setDraft('')
-    try {
-      await sendDm(partner.encKey, partner.displayName, text)
-    } catch (err) {
-      console.error(err)
-      setDraft(text)
-    } finally {
-      setSending(false)
-    }
   }
 
   function fmtTime(ts) {
@@ -130,7 +121,7 @@ function ChatModal({ me, partner, onClose }) {
             placeholder={`Message ${partner.displayName.split(' ')[0]}…`}
             autoFocus
           />
-          <button className="join-btn-primary chat-send" type="submit" disabled={!draft.trim() || sending}>
+          <button className="join-btn-primary chat-send" type="submit" disabled={!draft.trim()}>
             Send
           </button>
         </form>
@@ -203,11 +194,6 @@ export default function Friends() {
   }, [cleanedQuery, profilesMap, accountsMap, myEncKey])
 
   // ── Actions ──
-  function labelOf(encKey) {
-    const card = buildCard(encKey, accountsMap, profilesMap)
-    return card.displayName
-  }
-
   function send(targetEncKey, displayName) {
     if (!targetEncKey || targetEncKey === myEncKey) return
     try {
@@ -449,7 +435,7 @@ export default function Friends() {
 
           {chatWith && (
             <ChatModal
-              me={myUsername}
+              me={myUserId()}
               partner={chatWith}
               onClose={() => setChatWith(null)}
             />

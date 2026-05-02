@@ -161,16 +161,16 @@ export default function UserProfile() {
     if (!isLoggedIn()) { navigate('/login'); return }
     if (!connStatus) {
       sendConnectionRequest(userKey, profile.name || displayHandle)
-    } else if (connStatus.status === 'received') {
+    } else if (connStatus?.status === 'received') {
       acceptConnection(userKey)
     }
   }
 
   const connectLabel = () => {
-    if (!connStatus)                    return 'Add Friend'
-    if (connStatus.status === 'sent')   return 'Request Sent'
-    if (connStatus.status === 'received') return 'Accept Request'
-    if (connStatus.status === 'accepted') return 'Connected ✓'
+    if (!connStatus)                          return 'Add Friend'
+    if (connStatus.status === 'sent')         return 'Request Sent'
+    if (connStatus.status === 'received')     return 'Accept Request'
+    if (connStatus.status === 'accepted')     return 'Connected ✓'
     return 'Add Friend'
   }
 

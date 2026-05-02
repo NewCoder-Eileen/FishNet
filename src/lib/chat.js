@@ -127,3 +127,13 @@ export function useUnreadDmCount() {
   }, [])
   return count
 }
+
+export function useIncomingRequestCount() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    return subscribeAllConnections(conns => {
+      setCount(Object.values(conns).filter(c => c?.status === 'received').length)
+    })
+  }, [])
+  return count
+}
