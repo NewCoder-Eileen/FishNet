@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '../lib/firebase'
 import { loadProfile } from '../lib/profile'
+import { isLoggedIn } from '../lib/auth'
 import { getStyle } from '../aquarium/fishStyles'
 import { BowlFish, FishPreview } from '../components/BowlFish'
 import seaweedA from '../assets/seaweed-a.png'
@@ -156,10 +157,17 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* Bottom toolbar — Connect instead of Account */}
+        {/* Bottom toolbar */}
         <div className="bowl-toolbar">
-          <button className="join-btn-primary" style={{ padding: '8px 24px', fontSize: 14 }}>
-            Connect
+          <button
+            className="join-btn-primary"
+            style={{ padding: '8px 20px', fontSize: 14 }}
+            onClick={() => {
+              if (!isLoggedIn()) { navigate('/login'); return }
+              navigate(`/messages?user=${username}&name=${encodeURIComponent(profile.name || username)}`)
+            }}
+          >
+            Message
           </button>
         </div>
 
