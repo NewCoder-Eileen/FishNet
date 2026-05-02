@@ -192,11 +192,10 @@ export default function UserProfile() {
         <div className="fishbowl-shine" aria-hidden />
         <div className="fishbowl-water-line" aria-hidden />
 
-        {/* Swim the bowl owner's chosen fish — keyed on styleId so the canvas
-            re-mounts the moment the owner picks a new fish in their profile. */}
+        {/* Swim the visitor's own fish so you see yourself in the bowl */}
         <BowlFish
-          key={theirStyle.id}
-          styleId={theirStyle.id}
+          key={myStyle.id}
+          styleId={myStyle.id}
           dots={DOTS}
           onDotEnter={id => setActivePanel(p => p === id ? null : id)}
         />
