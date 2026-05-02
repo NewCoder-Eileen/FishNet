@@ -8,6 +8,21 @@ import seaweedA from '../assets/seaweed-a.png'
 import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
 
+// Convert a Spotify share URL into the embeddable iframe URL.
+// Returns null if the URL doesn't look like a Spotify resource.
+function extractSpotifyEmbed(rawUrl) {
+  if (!rawUrl) return null
+  try {
+    const url = new URL(rawUrl.trim())
+    if (!/(^|\.)spotify\.com$/.test(url.hostname)) return null
+    const m = url.pathname.match(/^\/(?:embed\/)?(playlist|album|track|artist|episode|show)\/([A-Za-z0-9]+)/)
+    if (!m) return null
+    return `https://open.spotify.com/embed/${m[1]}/${m[2]}`
+  } catch {
+    return null
+  }
+}
+
 const SOCIALS = [
   { key: 'github',   label: 'GitHub',       placeholder: 'https://github.com/yourusername' },
   { key: 'linkedin', label: 'LinkedIn',     placeholder: 'https://linkedin.com/in/yourusername' },
@@ -43,7 +58,7 @@ function TagInput({ value, onChange, placeholder }) {
           }}
           onBlur={addTag} placeholder={tags.length === 0 ? placeholder : ''} />
       </div>
-      <span className="tag-hint">Press Enter or comma to add</span>
+      <span className="tag-hint">Press Enter to add</span>
     </div>
   )
 }
@@ -471,9 +486,18 @@ export default function Profile() {
 
         {/* Identity card — fish square + username + inline contact */}
         <div className="bowl-id-card">
-          <div className="bowl-fish-square">
+          <button
+            type="button"
+            className="bowl-fish-square bowl-fish-square-btn"
+            onClick={() => setFishEditOpen(true)}
+            title="Click to change your fish"
+            aria-label="Change your fish"
+          >
             <FishPreview styleId={fish.styleId} width={84} height={84} />
-          </div>
+            <span className="bowl-fish-square-overlay">
+              <span className="bowl-fish-square-overlay-text">Change</span>
+            </span>
+          </button>
           <div className="bowl-id-text">
             <div className="bowl-username-row">
               <p className="bowl-username">@{session?.username || 'guest'}</p>
@@ -531,7 +555,6 @@ export default function Profile() {
 
         {/* Bottom toolbar */}
         <div className="bowl-toolbar">
-          <button className="glass-btn" onClick={() => setFishEditOpen(true)}>🐟 Pick fish</button>
           <button className="glass-btn" onClick={() => setAccountOpen(true)}>⚙ Account</button>
         </div>
 
@@ -613,17 +636,41 @@ export default function Profile() {
         </SectionModal>
       )}
 
-      {openSection === 'spotify' && draft && (
-        <SectionModal title="Spotify Playlist" onClose={cancel} onSave={commit}>
+      {openSection === 'playlist' && draft && (
+        <SectionModal title="Playlist" onClose={cancel} onSave={commit}>
+          <p className="field-note-block">
+            Drop a Spotify playlist link so people who visit your bowl can vibe with you.
+          </p>
           <label className="profile-field">
-            <span>Playlist URL</span>
-            <input className="profile-input" value={draft.spotifyPlaylist || ''}
-              onChange={e => setDraft({ ...draft, spotifyPlaylist: e.target.value })}
-              placeholder="https://open.spotify.com/playlist/..." />
+            <span>Spotify Playlist URL</span>
+            <div className="spotify-input-row">
+              <span className="spotify-input-icon" aria-hidden>🎵</span>
+              <input
+                className="profile-input spotify-input"
+                value={draft.spotifyPlaylist || ''}
+                onChange={e => setDraft({ ...draft, spotifyPlaylist: e.target.value })}
+                placeholder="https://open.spotify.com/playlist/..."
+              />
+            </div>
           </label>
-          {draft.spotifyPlaylist && (
+
+          {draft.spotifyPlaylist && extractSpotifyEmbed(draft.spotifyPlaylist) && (
+            <div className="spotify-embed-wrap">
+              <iframe
+                title="Spotify playlist preview"
+                src={extractSpotifyEmbed(draft.spotifyPlaylist)}
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+              />
+            </div>
+          )}
+
+          {draft.spotifyPlaylist && !extractSpotifyEmbed(draft.spotifyPlaylist) && (
             <p className="field-note-block">
-              Preview: <a href={draft.spotifyPlaylist} target="_blank" rel="noreferrer" className="link">{draft.spotifyPlaylist}</a>
+              Saved: <a href={draft.spotifyPlaylist} target="_blank" rel="noreferrer" className="link">{draft.spotifyPlaylist}</a>
             </p>
           )}
         </SectionModal>
