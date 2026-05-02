@@ -257,7 +257,7 @@ main {
 /* ── 3D fish ── */
 .fish3d-wrap {
   position: absolute;
-  right: 4%;
+  right: 12%;
   top: 50%;
   transform: translateY(-55%);
   width: 260px;
@@ -435,7 +435,7 @@ main {
 /* ── About ── */
 .about-section {
   padding: 80px 32px;
-  max-width: 700px;
+  max-width: 1040px;
   margin: 0 auto;
   text-align: center;
   border-top: 1px solid rgba(180, 150, 220, 0.2);
@@ -456,6 +456,57 @@ main {
   color: #c0e8f5;
   font-size: 17px;
   line-height: 1.8;
+}
+
+/* ── About cards ── */
+.about-title {
+  font-size: 36px;
+  margin-bottom: 40px;
+  background: linear-gradient(90deg, #a0eeff, #60c8e8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.about-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.about-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(160, 200, 255, 0.18);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: left;
+  backdrop-filter: blur(10px);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.about-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.about-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #a8dff8;
+  margin: 0 0 10px;
+}
+
+.about-card p {
+  font-size: 15px;
+  color: #9ab8d8;
+  line-height: 1.75;
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .about-cards { grid-template-columns: 1fr; }
 }
 
 /* ── Jellyfish buttons ── */

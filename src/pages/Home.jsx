@@ -217,9 +217,9 @@ function InteractiveFish() {
       <Canvas camera={{ position: [0, 0, 5.5], fov: 38 }} dpr={[1, 1.5]}
         style={{ width: '100%', height: '100%', background: 'transparent' }}
         gl={{ alpha: true, antialias: true }}>
-        <ambientLight intensity={0.55} color="#c8d4ff" />
-        <directionalLight position={[3, 4, 3]} intensity={1.1} />
-        <pointLight position={[-2, 2, 2]} intensity={0.5} color="#b090ff" />
+        <ambientLight intensity={1.4} color="#ffffff" />
+        <directionalLight position={[3, 4, 3]} intensity={2.0} color="#f0f4ff" />
+        <pointLight position={[-2, 2, 2]} intensity={0.6} color="#dde8ff" />
         <Suspense fallback={null}>
           <FishScene mouseRef={mouseRef} />
         </Suspense>
@@ -377,11 +377,6 @@ export default function Home() {
       <main>
         <HeroSection />
 
-        <Section className="about-section" id="about">
-          <h2>About</h2>
-          <p>Tell your story here — what is fishnet, who is it for, and what makes it different.</p>
-        </Section>
-
         <section className="about-section fade-up" id="connect">
           <h2 style={{
             fontSize: 36, marginBottom: 16,
@@ -396,6 +391,24 @@ export default function Home() {
         <Section className="btn-section" id="join-event">
           <div className="btn-grid">
             {NAV_BUTTONS.map(btn => <Jellyfish key={btn.label} {...btn} />)}
+          </div>
+        </Section>
+
+        <Section className="about-section" id="about">
+          <h2 className="about-title">About</h2>
+          <div className="about-cards">
+            <div className="about-card">
+              <h3>Who is this for?</h3>
+              <p>Hackers, builders, and creatives at events who want to find the right teammates fast — without awkward cold intros or scanning a hundred name badges.</p>
+            </div>
+            <div className="about-card">
+              <h3>When would you use it?</h3>
+              <p>At hackathons, club fairs, networking nights, and conferences — any time you're in a room full of strangers and need to surface the people who actually match what you're looking for.</p>
+            </div>
+            <div className="about-card">
+              <h3>Why FishNet?</h3>
+              <p>Because the best connections happen when you know who's in the water with you. FishNet turns a sea of faces into a curated list of people worth meeting.</p>
+            </div>
           </div>
         </Section>
 
