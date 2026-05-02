@@ -6,6 +6,7 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Connect from './Connect.jsx'
 import RequireAuth from './components/RequireAuth'
+import ConvixApp from './app/App.jsx'
 import './App.css'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/join"        element={<RequireAuth><JoinEvent /></RequireAuth>} />
         <Route path="/event/:code" element={<RequireAuth><EventPage /></RequireAuth>} />
         <Route path="/connect"     element={<RequireAuth><Connect /></RequireAuth>} />
+        <Route path="/convix"      element={<ConvixApp />} />
       </Routes>
     </BrowserRouter>
   )
