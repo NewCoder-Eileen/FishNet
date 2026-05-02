@@ -5,12 +5,18 @@ import BubbleBackground from '../components/BubbleBackground'
 import { getSession, subscribeAccounts } from '../lib/auth'
 import { subscribeProfiles } from '../lib/profile'
 import {
-  subscribeMyRelations,
-  sendRequest    as relSendRequest,
-  clearRelation  as relClearRelation,
-  acceptRequest  as relAcceptRequest,
-} from '../lib/relations'
-import { subscribeMessages, sendMessage as relSendMessage } from '../lib/messages'
+  myUserId,
+  subscribeAllConnections,
+  sendConnectionRequest,
+  acceptConnection,
+  cancelConnection,
+  declineConnection,
+  removeConnection,
+  getDmId,
+  sendDm,
+  subscribeDmMessages,
+  markDmRead,
+} from '../lib/chat'
 import '../App.css'
 
 function encodeKey(k) {
@@ -52,11 +58,14 @@ function ChatModal({ me, partner, onClose }) {
   const [sending, setSending]   = useState(false)
   const scrollRef = useRef(null)
 
+  const dmId = me && partner?.encKey ? getDmId(me, partner.encKey) : null
+
   useEffect(() => {
-    if (!me || !partner) return
-    const off = subscribeMessages(me, partner.username, setMessages)
+    if (!dmId) return
+    markDmRead(dmId)
+    const off = subscribeDmMessages(dmId, setMessages)
     return () => off?.()
-  }, [me, partner?.username])
+  }, [dmId])
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -76,7 +85,7 @@ function ChatModal({ me, partner, onClose }) {
     setSending(true)
     setDraft('')
     try {
-      await relSendMessage(me, partner.username, text)
+      await sendDm(partner.encKey, partner.displayName, text)
     } catch (err) {
       console.error(err)
       setDraft(text)
@@ -155,7 +164,7 @@ export default function Friends() {
 
   useEffect(() => {
     if (!myUsername) { setMyRelations({}); return }
-    const off = subscribeMyRelations(myUsername, setMyRelations)
+    const off = subscribeAllConnections(setMyRelations)
     return () => off?.()
   }, [myUsername])
 
@@ -172,9 +181,10 @@ export default function Friends() {
   }
 
   // ── Categorize relations ──
-  const friends   = useMemo(() => Object.entries(myRelations).filter(([, s]) => s === 'friend').map(([k]) => k),       [myRelations])
-  const incoming  = useMemo(() => Object.entries(myRelations).filter(([, s]) => s === 'pending_in').map(([k]) => k),   [myRelations])
-  const outgoing  = useMemo(() => Object.entries(myRelations).filter(([, s]) => s === 'pending_out').map(([k]) => k),  [myRelations])
+  // chat.js stores entries as { status: 'sent' | 'received' | 'accepted', ... }
+  const friends   = useMemo(() => Object.entries(myRelations).filter(([, v]) => v?.status === 'accepted').map(([k]) => k), [myRelations])
+  const incoming  = useMemo(() => Object.entries(myRelations).filter(([, v]) => v?.status === 'received').map(([k]) => k), [myRelations])
+  const outgoing  = useMemo(() => Object.entries(myRelations).filter(([, v]) => v?.status === 'sent').map(([k]) => k),     [myRelations])
 
   // ── Search candidates: every profile not me, matching the query ──
   const cleanedQuery = searchQuery.trim().toLowerCase()
@@ -198,43 +208,44 @@ export default function Friends() {
     return card.displayName
   }
 
-  async function send(target) {
-    if (!target || target === myUsername) return
+  function send(targetEncKey, displayName) {
+    if (!targetEncKey || targetEncKey === myEncKey) return
     try {
-      await relSendRequest(myUsername, target)
-      pushToast(`Friend request sent to ${target}`, 'info')
+      sendConnectionRequest(targetEncKey, displayName || targetEncKey)
+      pushToast(`Friend request sent to ${displayName || targetEncKey}`, 'info')
     } catch (e) { console.error(e); pushToast('Could not send request — try again.', 'error') }
   }
-  async function cancel(targetEnc) {
+  function cancel(targetEnc) {
     try {
       const card = buildCard(targetEnc, accountsMap, profilesMap)
-      await relClearRelation(myUsername, card.username)
+      cancelConnection(targetEnc)
       pushToast(`Cancelled request to ${card.displayName}`, 'info')
     } catch (e) { console.error(e) }
   }
-  async function accept(targetEnc) {
+  function accept(targetEnc) {
     try {
       const card = buildCard(targetEnc, accountsMap, profilesMap)
-      await relAcceptRequest(myUsername, card.username)
+      acceptConnection(targetEnc)
       pushToast(`You and ${card.displayName} are now friends`, 'success')
     } catch (e) { console.error(e) }
   }
-  async function decline(targetEnc) {
+  function decline(targetEnc) {
     try {
       const card = buildCard(targetEnc, accountsMap, profilesMap)
-      await relClearRelation(myUsername, card.username)
+      declineConnection(targetEnc)
       pushToast(`Declined request from ${card.displayName}`, 'info')
     } catch (e) { console.error(e) }
   }
-  async function remove(targetEnc) {
+  function remove(targetEnc) {
     try {
       const card = buildCard(targetEnc, accountsMap, profilesMap)
-      await relClearRelation(myUsername, card.username)
+      removeConnection(targetEnc)
       pushToast(`Removed ${card.displayName} from friends`, 'info')
     } catch (e) { console.error(e) }
   }
 
-  function statusOf(encKey) { return myRelations[encKey] }
+  // chat.js stores entries as { status, ts, ... }; expose just the status string.
+  function statusOf(encKey) { return myRelations[encKey]?.status }
 
   // ── Reusable row for a person card ──
   function PersonRow({ card, actions }) {
@@ -254,7 +265,7 @@ export default function Friends() {
     const status = statusOf(card.encKey)
     const bowlBtn = <button className="glass-btn small" onClick={() => visitBowl(card.encKey)}>🐠 Bowl</button>
     let actions
-    if (status === 'friend') {
+    if (status === 'accepted') {
       actions = (
         <>
           <span className="added-pill">Friends ✓</span>
@@ -262,7 +273,7 @@ export default function Friends() {
           <button className="glass-btn small" onClick={() => setChatWith(card)}>Message</button>
         </>
       )
-    } else if (status === 'pending_out') {
+    } else if (status === 'sent') {
       actions = (
         <>
           <span className="pending-pill">Sent</span>
@@ -270,7 +281,7 @@ export default function Friends() {
           <button className="glass-btn small" onClick={() => cancel(card.encKey)}>Cancel</button>
         </>
       )
-    } else if (status === 'pending_in') {
+    } else if (status === 'received') {
       actions = (
         <>
           <button className="glass-btn small primary" onClick={() => accept(card.encKey)}>Accept</button>
@@ -281,7 +292,7 @@ export default function Friends() {
     } else {
       actions = (
         <>
-          <button className="glass-btn small primary" onClick={() => send(card.username)}>Add Friend</button>
+          <button className="glass-btn small primary" onClick={() => send(card.encKey, card.displayName)}>Add Friend</button>
           {bowlBtn}
         </>
       )

@@ -5,11 +5,12 @@ import BubbleBackground from './components/BubbleBackground'
 import { getSession, subscribeAccounts } from './lib/auth'
 import { subscribeProfiles } from './lib/profile'
 import {
-  subscribeMyRelations,
-  sendRequest    as relSendRequest,
-  clearRelation  as relClearRelation,
-  acceptRequest  as relAcceptRequest,
-} from './lib/relations'
+  subscribeAllConnections,
+  sendConnectionRequest,
+  acceptConnection,
+  cancelConnection,
+  declineConnection,
+} from './lib/chat'
 import './App.css'
 
 // Build a friend-card data object from a username + cached accounts/profiles maps.
@@ -84,7 +85,7 @@ function Connect() {
 
   useEffect(() => {
     if (!myUsername) { setMyRelations({}); return }
-    const off = subscribeMyRelations(myUsername, setMyRelations)
+    const off = subscribeAllConnections(setMyRelations)
     return () => off?.()
   }, [myUsername])
 
@@ -148,12 +149,12 @@ function Connect() {
           if (!k || seen.has(k)) continue
           if (myTags.has(k)) { shared.push(t); seen.add(k) }
         }
-        return { card, shared, status: myRelations[encKey], encKey }
+        return { card, shared, status: myRelations[encKey]?.status, encKey }
       })
-      .filter(b => b.status !== 'friend')
+      .filter(b => b.status !== 'accepted')
       .sort((a, b) => {
-        const aIn = a.status === 'pending_in' ? 1 : 0
-        const bIn = b.status === 'pending_in' ? 1 : 0
+        const aIn = a.status === 'received' ? 1 : 0
+        const bIn = b.status === 'received' ? 1 : 0
         if (aIn !== bIn) return bIn - aIn
         if (a.shared.length !== b.shared.length) return b.shared.length - a.shared.length
         return a.card.displayName.localeCompare(b.card.displayName)
@@ -172,10 +173,12 @@ function Connect() {
     timeoutsRef.current.push(tid)
   }
 
-  async function sendRequest(target) {
-    if (!myUsername || !target || target === myUsername || myRelations[encodeKey(target)]) return
+  function sendRequest(target) {
+    if (!myUsername || !target || target === myUsername) return
+    const enc = encodeKey(target)
+    if (myRelations[enc]) return
     try {
-      await relSendRequest(myUsername, target)
+      sendConnectionRequest(enc, labelOf(target))
       pushToast(`Friend request sent to ${labelOf(target)}`, 'info')
     } catch (e) {
       console.error(e)
@@ -183,23 +186,23 @@ function Connect() {
     }
   }
 
-  async function cancelRequest(target) {
+  function cancelRequest(target) {
     try {
-      await relClearRelation(myUsername, target)
+      cancelConnection(encodeKey(target))
       pushToast(`Cancelled request to ${labelOf(target)}`, 'info')
     } catch (e) { console.error(e) }
   }
 
-  async function acceptRequest(target) {
+  function acceptRequest(target) {
     try {
-      await relAcceptRequest(myUsername, target)
+      acceptConnection(encodeKey(target))
       pushToast(`You and ${labelOf(target)} are now friends`, 'success')
     } catch (e) { console.error(e) }
   }
 
-  async function declineRequest(target) {
+  function declineRequest(target) {
     try {
-      await relClearRelation(myUsername, target)
+      declineConnection(encodeKey(target))
       pushToast(`Declined request from ${labelOf(target)}`, 'info')
     } catch (e) { console.error(e) }
   }
@@ -218,13 +221,13 @@ function Connect() {
 
     function onAdd(e) {
       e.stopPropagation()
-      if (status === 'pending_out') cancelRequest(card.username)
+      if (status === 'sent') cancelRequest(card.username)
       else                          sendRequest(card.username)
     }
 
     return (
       <div
-        className={`person-bubble${status === 'pending_in' ? ' incoming' : ''}${status === 'pending_out' ? ' sent' : ''}`}
+        className={`person-bubble${status === 'received' ? ' incoming' : ''}${status === 'sent' ? ' sent' : ''}`}
         style={{
           animationDuration: `${dur}s`,
           animationDelay: `${delay}s`,
@@ -255,22 +258,22 @@ function Connect() {
             </div>
           )}
 
-          {status === 'pending_in' && <span className="bubble-status">wants to connect</span>}
+          {status === 'received' && <span className="bubble-status">wants to connect</span>}
         </div>
 
-        {status === 'pending_in' ? (
+        {status === 'received' ? (
           <div className="bubble-accept-row" onClick={(e) => e.stopPropagation()}>
             <button className="bubble-mini accept" onClick={() => acceptRequest(card.username)} aria-label="Accept">✓</button>
             <button className="bubble-mini decline" onClick={() => declineRequest(card.username)} aria-label="Decline">×</button>
           </div>
         ) : (
           <button
-            className={`bubble-add${status === 'pending_out' ? ' sent' : ''}`}
+            className={`bubble-add${status === 'sent' ? ' sent' : ''}`}
             onClick={onAdd}
-            aria-label={status === 'pending_out' ? 'Cancel request' : 'Send connect request'}
-            title={status === 'pending_out' ? 'Sent — click to cancel' : 'Connect'}
+            aria-label={status === 'sent' ? 'Cancel request' : 'Send connect request'}
+            title={status === 'sent' ? 'Sent — click to cancel' : 'Connect'}
           >
-            {status === 'pending_out' ? '✓' : '+'}
+            {status === 'sent' ? '✓' : '+'}
           </button>
         )}
       </div>
@@ -294,7 +297,7 @@ function Connect() {
     )
   }
 
-  const incomingCount = bubbles.filter(b => b.status === 'pending_in').length
+  const incomingCount = bubbles.filter(b => b.status === 'received').length
 
   return (
     <>
@@ -387,10 +390,10 @@ function Connect() {
                 <div className="modal-actions">
                   <button className="glass-btn" onClick={() => visitBowl(selectedFriend.username)}>Visit Bowl</button>
                   {(() => {
-                    const status = myRelations[encodeKey(selectedFriend.username)]
-                    if (status === 'friend')      return <span className="added-pill">Friends ✓</span>
-                    if (status === 'pending_out') return <button className="glass-btn"         onClick={() => cancelRequest(selectedFriend.username)}>Cancel request</button>
-                    if (status === 'pending_in')  return (
+                    const status = myRelations[encodeKey(selectedFriend.username)]?.status
+                    if (status === 'accepted')    return <span className="added-pill">Friends ✓</span>
+                    if (status === 'sent') return <button className="glass-btn"         onClick={() => cancelRequest(selectedFriend.username)}>Cancel request</button>
+                    if (status === 'received')  return (
                       <>
                         <button className="glass-btn primary" onClick={() => acceptRequest(selectedFriend.username)}>Accept</button>
                         <button className="glass-btn"         onClick={() => declineRequest(selectedFriend.username)}>Decline</button>

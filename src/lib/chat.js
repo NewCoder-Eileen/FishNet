@@ -1,11 +1,13 @@
 import { db } from './firebase'
-import { ref, push, update, onValue, off } from 'firebase/database'
+import { ref, push, update, onValue, off, remove } from 'firebase/database'
 import { getSession } from './auth'
 import { useEffect, useState } from 'react'
 
+// Match the encoding used by accounts/profiles/relations everywhere else so a
+// signed-up `Eileen` and an event-broadcast `eileen` resolve to the same key.
 export function myUserId() {
   const s = getSession()
-  return s ? s.username.replace(/\./g, '_') : null
+  return s ? s.username.toLowerCase().replace(/[.#$[\]/]/g, '_') : null
 }
 
 export function getDmId(a, b) {
@@ -95,6 +97,28 @@ export function subscribeConnection(otherUserId, cb) {
   onValue(r, snap => cb(snap.val()))
   return () => off(r)
 }
+
+// Live view of every connection edge for the current user, keyed by other
+// user's id: { otherId: { status, ts, ... } }
+export function subscribeAllConnections(cb) {
+  const me = myUserId()
+  if (!me) { cb({}); return () => {} }
+  const r = ref(db, `connections/${me}`)
+  onValue(r, snap => cb(snap.val() || {}))
+  return () => off(r)
+}
+
+// All three of cancel / decline / remove do the same thing: wipe both sides
+// of the edge. Distinct names so call sites read clearly.
+function clearBothSides(otherUserId) {
+  const me = myUserId()
+  if (!me || !otherUserId) return
+  remove(ref(db, `connections/${me}/${otherUserId}`))
+  remove(ref(db, `connections/${otherUserId}/${me}`))
+}
+export function cancelConnection(toUserId)    { clearBothSides(toUserId) }
+export function declineConnection(fromUserId) { clearBothSides(fromUserId) }
+export function removeConnection(otherUserId) { clearBothSides(otherUserId) }
 
 export function useUnreadDmCount() {
   const [count, setCount] = useState(0)
