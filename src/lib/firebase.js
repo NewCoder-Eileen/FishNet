@@ -8,13 +8,12 @@ import { getDatabase } from 'firebase/database'
 //    → choose a region → Start in TEST MODE
 // ───────────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            'PASTE_HERE',
-  authDomain:        'PASTE_HERE',
-  databaseURL:       'PASTE_HERE',
-  projectId:         'PASTE_HERE',
-  storageBucket:     'PASTE_HERE',
-  messagingSenderId: 'PASTE_HERE',
-  appId:             'PASTE_HERE',
+  apiKey:            'AIzaSyCCUeSckyAt51woRNvhF0khHoEZfS180Is',
+  authDomain:        'fishnet-72781.firebaseapp.com',
+  projectId:         'fishnet-72781',
+  storageBucket:     'fishnet-72781.firebasestorage.app',
+  messagingSenderId: '439845806007',
+  appId:             '1:439845806007:web:789546cf9ae5e0e75fd232',
 }
 
 const app = initializeApp(firebaseConfig)
