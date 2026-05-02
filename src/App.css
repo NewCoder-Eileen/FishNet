@@ -1786,6 +1786,58 @@ main {
   margin-bottom: 4px;
 }
 
+.login-logo-img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin: 0 auto 4px;
+  display: block;
+  filter: drop-shadow(0 6px 14px rgba(220, 130, 180, 0.35));
+  animation: login-fish-bob 3.4s ease-in-out infinite;
+}
+
+@keyframes login-fish-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 6px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.login-demo-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.login-demo-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
 .login-title {
   font-size: 28px;
   font-weight: 800;

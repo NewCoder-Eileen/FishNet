@@ -3,6 +3,27 @@ const SESSION_KEY  = 'fishnet_session'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// ── Demo account ──
+// Use these to sign in instantly during a demo. The account auto-creates on
+// first use (in any browser/profile), so you never have to sign up again.
+export const DEMO_USERNAME = 'demo'
+export const DEMO_PASSWORD = 'fishnet'
+export const DEMO_EMAIL    = 'demo@fishnet.app'
+
+export function signInAsDemo() {
+  const accounts = getAccounts()
+  if (!accounts[DEMO_USERNAME]) {
+    accounts[DEMO_USERNAME] = {
+      username: DEMO_USERNAME,
+      password: DEMO_PASSWORD,
+      email:    DEMO_EMAIL,
+    }
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts))
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ username: DEMO_USERNAME }))
+  return { ok: true }
+}
+
 function getAccounts() {
   try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}') } catch { return {} }
 }

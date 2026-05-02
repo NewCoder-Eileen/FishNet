@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { login, signup } from '../lib/auth'
+import { login, signup, signInAsDemo } from '../lib/auth'
+import { seedDemoProfileIfEmpty } from '../lib/profile'
 import BubbleBackground from '../components/BubbleBackground'
+import loginFish from '../assets/login-fish.png'
 import '../App.css'
 
 export default function Login() {
@@ -50,12 +52,18 @@ export default function Login() {
     setError(''); setConfirm(''); setEmail(''); setEmailTaken(false)
   }
 
+  function handleDemo() {
+    signInAsDemo()
+    seedDemoProfileIfEmpty()
+    navigate(next, { replace: true })
+  }
+
   return (
     <div className="login-page">
       <BubbleBackground count={16} />
 
       <div className="login-card">
-        <div className="login-logo">🐟</div>
+        <img src={loginFish} alt="" className="login-logo-img" />
         <h1 className="login-title">fishnet</h1>
         <p className="login-subtitle">
           {mode === 'login' ? 'Welcome back, swimmer.' : 'Join the net.'}
@@ -124,6 +132,12 @@ export default function Login() {
             {mode === 'login' ? 'Log in' : 'Create account'}
           </button>
         </form>
+
+        <div className="login-divider"><span>or</span></div>
+
+        <button type="button" className="login-demo-btn" onClick={handleDemo}>
+          🎬 Continue as demo
+        </button>
 
         <button className="login-switch" onClick={switchMode}>
           {mode === 'login'
