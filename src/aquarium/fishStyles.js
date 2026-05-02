@@ -119,10 +119,6 @@ function drawExtra(ctx, extra, hue) {
 // Shared hue-aware fish draw — used in EventPage and Profile preview.
 // fish = { x, y, angle, tailPhase, scale, hue, accessories: { hat, glasses, extra } }
 export function drawFish(ctx, fish) {
-  if (!fish || typeof fish.x !== 'number' || typeof fish.y !== 'number') {
-    console.warn('Invalid fish object:', fish)
-    return
-  }
   const { x, y, angle, tailPhase, scale = 1, hue = 270 } = fish
   const goingLeft = Math.cos(angle) < 0
   ctx.save()

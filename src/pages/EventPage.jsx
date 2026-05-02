@@ -113,7 +113,6 @@ export default function EventPage() {
       }
 
       const myId = (getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`).replace(/\./g, '_')
-      console.log('EventPage initialized with myId:', myId, 'code:', code)
 
       const state = {
         player: {
@@ -168,7 +167,6 @@ export default function EventPage() {
       function resize() { 
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
-        console.log('Canvas resized to:', canvas.width, 'x', canvas.height)
       }
       resize()
       window.addEventListener('resize', resize)
@@ -182,13 +180,8 @@ export default function EventPage() {
       window.addEventListener('keyup',   onKeyUp)
 
       let animId
-      let frameCount = 0
 
       function loop(ts) {
-        frameCount++
-        if (frameCount === 1) {
-          console.log('Animation loop started, canvas:', canvas, 'ctx:', ctx)
-        }
         const { player, others, cam, keys } = state
         const W = canvas.width, H = canvas.height
 
