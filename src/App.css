@@ -2204,8 +2204,12 @@ main {
 
 .profile-fishbowl {
   position: relative;
-  width: min(960px, 94vw);
-  height: min(78vh, 760px);
+  /* Fixed dimensions so every user sees the same bowl on desktop.
+     Scales down only when the viewport is physically too small. */
+  width:  900px;
+  height: 700px;
+  max-width:  96vw;
+  max-height: 86vh;
   border-radius: 48% 48% 50% 50% / 56% 56% 48% 48%;
   overflow: hidden;
   background: linear-gradient(to bottom, rgba(170, 220, 250, 0.92), rgba(70, 145, 200, 0.88));
@@ -2709,9 +2713,8 @@ main {
 
 @media (max-width: 700px) {
   .profile-fishbowl-page { padding-top: 80px; }
-  .profile-fishbowl       { height: min(82vh, 700px); }
-  .bowl-name-tag          { top: 12%; }
-  .bowl-username          { font-size: 22px; }
+  .profile-fishbowl       { width: 96vw; height: 82vh; }
+  .bowl-username          { font-size: 18px; }
   .bowl-toolbar           { top: 10px; right: 10px; }
 }
 
