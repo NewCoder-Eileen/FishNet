@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { loadProfile, saveProfile } from '../lib/profile'
+import { MOCK_PROFILES } from '../data/mockProfiles'
 import '../App.css'
 
 const SOCIALS = [
@@ -11,20 +13,47 @@ const SOCIALS = [
   { key: 'email',    label: 'Email',         placeholder: 'you@example.com' },
 ]
 
-const EMPTY_PROFILE = {
-  name: '',
-  bio: '',
-  socials: {},
-  customLinks: [],
-}
+function TagInput({ value, onChange, placeholder }) {
+  const [draft, setDraft] = useState('')
+  const tags = value || []
 
-function loadProfile() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('fishnet_profile') || 'null')
-    return { ...EMPTY_PROFILE, ...(stored || {}) }
-  } catch {
-    return EMPTY_PROFILE
+  function addTag() {
+    const tag = draft.trim().toLowerCase()
+    if (tag && !tags.includes(tag)) onChange([...tags, tag])
+    setDraft('')
   }
+
+  function removeTag(idx) {
+    onChange(tags.filter((_, i) => i !== idx))
+  }
+
+  return (
+    <div className="tag-input">
+      <div className="tag-list">
+        {tags.map((tag, i) => (
+          <button key={i} type="button" className="tag-pill" onClick={() => removeTag(i)}>
+            {tag} <span className="tag-pill-x">×</span>
+          </button>
+        ))}
+        <input
+          className="tag-draft"
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ',') {
+              e.preventDefault()
+              addTag()
+            } else if (e.key === 'Backspace' && !draft && tags.length > 0) {
+              onChange(tags.slice(0, -1))
+            }
+          }}
+          onBlur={addTag}
+          placeholder={tags.length === 0 ? placeholder : ''}
+        />
+      </div>
+      <span className="tag-hint">Press Enter or comma to add</span>
+    </div>
+  )
 }
 
 export default function Profile() {
@@ -38,6 +67,16 @@ export default function Profile() {
 
   function updateSocial(key, value) {
     setProfile(p => ({ ...p, socials: { ...p.socials, [key]: value } }))
+  }
+
+  function toggleConnection(id) {
+    setProfile(p => {
+      const list = p.connections || []
+      return {
+        ...p,
+        connections: list.includes(id) ? list.filter(x => x !== id) : [...list, id],
+      }
+    })
   }
 
   function addCustomLink() {
@@ -64,7 +103,7 @@ export default function Profile() {
   }
 
   function handleSave() {
-    localStorage.setItem('fishnet_profile', JSON.stringify(profile))
+    saveProfile(profile)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -99,6 +138,46 @@ export default function Profile() {
               rows={3}
             />
           </label>
+        </div>
+
+        <div className="profile-card">
+          <h2 className="join-title profile-card-title">Interests</h2>
+          <p className="join-desc profile-card-desc">Tags that describe what you build, study, or care about.</p>
+          <TagInput
+            value={profile.interests}
+            onChange={tags => updateField('interests', tags)}
+            placeholder="ai, design, climate..."
+          />
+        </div>
+
+        <div className="profile-card">
+          <h2 className="join-title profile-card-title">Looking For</h2>
+          <p className="join-desc profile-card-desc">What kind of people you want to meet.</p>
+          <TagInput
+            value={profile.goals}
+            onChange={tags => updateField('goals', tags)}
+            placeholder="cofounder, internship, mentor..."
+          />
+        </div>
+
+        <div className="profile-card">
+          <h2 className="join-title profile-card-title">Network</h2>
+          <p className="join-desc profile-card-desc">Tap people you already know — used to find mutual connections.</p>
+          <div className="connection-grid">
+            {MOCK_PROFILES.map(p => {
+              const isOn = (profile.connections || []).includes(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`connection-pill${isOn ? ' on' : ''}`}
+                  onClick={() => toggleConnection(p.id)}
+                >
+                  {p.name}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="profile-card">

@@ -109,13 +109,26 @@ main {
 
 /* ── Hero logo ── */
 .hero {
-  min-height: 70vh;
+  position: relative;
+  min-height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.aquarium-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
 }
 
 .hero-logo-placeholder {
+  position: relative;
+  z-index: 1;
   width: 480px;
   height: 280px;
   border-radius: 32px;
@@ -639,4 +652,97 @@ main {
 
 .profile-save {
   margin-top: 8px;
+}
+
+/* ── Tag input ── */
+.tag-input { display: flex; flex-direction: column; gap: 6px; }
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(180, 150, 255, 0.4);
+  background: rgba(255, 255, 255, 0.55);
+  min-height: 44px;
+  align-items: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tag-list:focus-within {
+  border-color: rgba(160, 100, 255, 0.8);
+  box-shadow: 0 0 0 4px rgba(160, 100, 255, 0.12);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, rgba(180, 130, 255, 0.3), rgba(140, 170, 255, 0.3));
+  border: 1px solid rgba(180, 150, 255, 0.5);
+  border-radius: 999px;
+  color: #5030a0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: system-ui, sans-serif;
+  transition: opacity 0.15s;
+}
+.tag-pill:hover { opacity: 0.7; }
+
+.tag-pill-x {
+  font-size: 14px;
+  line-height: 1;
+  color: #8060c0;
+  margin-left: 2px;
+}
+
+.tag-draft {
+  flex: 1;
+  min-width: 100px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #2a1a5e;
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+  padding: 4px 6px;
+}
+.tag-draft::placeholder { color: #b8a0d8; }
+
+.tag-hint {
+  font-size: 11px;
+  color: #8070b0;
+  letter-spacing: 0.02em;
+}
+
+/* ── Connection picker ── */
+.connection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.connection-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(180, 150, 255, 0.4);
+  background: rgba(255, 255, 255, 0.4);
+  color: #6040a0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: system-ui, sans-serif;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.connection-pill:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
+}
+.connection-pill.on {
+  background: linear-gradient(135deg, #9050e0, #5070d0);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(120, 70, 220, 0.3);
 }

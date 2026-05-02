@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AquariumScene from '../components/AquariumScene'
 import '../App.css'
 
 const NAV_LINKS = ['Home', 'Profile', 'Join Event', 'Connect', 'About', 'Privacy']
@@ -118,6 +119,7 @@ export default function Home() {
       <Navbar />
       <main>
         <section className="hero" id="home">
+          <AquariumScene />
           <div className="hero-logo-placeholder fade-up visible">Your Logo Here</div>
         </section>
 
