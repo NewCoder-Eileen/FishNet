@@ -450,8 +450,14 @@ export default function Profile() {
 
         {/* Bottom toolbar */}
         <div className="bowl-toolbar">
-          <button className="glass-btn" onClick={() => bowlFishRef.current?.feed()} title="Drop fish food into the bowl">
-            🍤 Feed
+          <button
+            type="button"
+            className="bowl-feed-btn"
+            onClick={() => bowlFishRef.current?.feed()}
+            title="Drop fish food into the bowl"
+          >
+            <span className="bowl-feed-emoji" aria-hidden>🍤</span>
+            <span>Feed!</span>
           </button>
           <button className="glass-btn" onClick={() => setAccountOpen(true)}>⚙ Account</button>
         </div>
