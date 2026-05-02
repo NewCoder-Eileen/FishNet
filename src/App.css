@@ -438,7 +438,6 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
 /* boxes go to the four corners */
@@ -2723,9 +2722,7 @@ main {
   transform: translateX(-50%) translateY(-2px);
 }
 
-/* Seaweed — base style; per-instance position/size set inline.
-   z-index sits BELOW the sand layer so the plant bases are buried in the
-   sand instead of showing the PNG's hard bottom edge above the floor. */
+/* Seaweed — base style; per-instance position/size set inline. */
 .bowl-seaweed {
   position: absolute;
   height: auto;
@@ -2734,7 +2731,7 @@ main {
   transform-origin: bottom center;
   animation: seaweed-sway 6.5s ease-in-out infinite alternate;
   filter: drop-shadow(0 4px 6px rgba(40, 70, 110, 0.20));
-  z-index: 1;
+  z-index: 3;
 }
 .seaweed-mirror { animation-name: seaweed-sway-mirror; }
 
@@ -2771,7 +2768,7 @@ main {
   background-size:
     24px 24px, 32px 32px, 28px 28px, 36px 36px, 30px 30px,
     100% 100%, 100% 100%, 100% 100%;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
 }
 
