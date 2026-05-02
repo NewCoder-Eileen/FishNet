@@ -10,36 +10,11 @@ import { db } from '../lib/firebase'
 import { drawFish, getStyle } from '../aquarium/fishStyles'
 import { sendEventMessage, getAcceptedConnectionCount } from '../lib/chat'
 import { playBubble } from '../lib/audio'
-import jellyBlueCute from '../assets/jelly-blue-cute.png'
-
 const { width: WORLD_W, height: WORLD_H } = WORLD
 const { maxSpeed: MAX_SPEED, accel: ACCEL, friction: FRICTION } = MOVEMENT
 
 const PROXIMITY_R = 110
 const DECO = generateDecorations()
-
-// Shared, module-scoped image so every fish renders the same sprite without
-// re-decoding the PNG on every frame.
-const CREATURE_IMG = new Image()
-CREATURE_IMG.src = jellyBlueCute
-
-// Draws the cute creature in place of a fish. Keeps the bob animation tied to
-// `tailPhase` so it still feels alive while moving, and tilts gently in the
-// direction of travel.
-function drawCreature(ctx, fish) {
-  if (!CREATURE_IMG.complete || !CREATURE_IMG.naturalWidth) return
-  const size  = 78 * (fish.scale || 1)
-  const bob   = Math.sin(fish.tailPhase || 0) * 0.06
-  const lean  = Math.atan2(fish.vy || 0, fish.vx || 0)
-  const speed = Math.hypot(fish.vx || 0, fish.vy || 0)
-  // Only tilt when actually moving; idle creatures stay upright.
-  const tilt  = speed > 0.4 ? Math.cos(lean) * 0.18 : 0
-  ctx.save()
-  ctx.translate(fish.x, fish.y)
-  ctx.rotate(bob + tilt)
-  ctx.drawImage(CREATURE_IMG, -size / 2, -size / 2, size, size)
-  ctx.restore()
-}
 
 // ── Nameplate above each fish ──
 function drawNameplate(ctx, fish) {
@@ -385,8 +360,8 @@ export default function EventPage() {
         for (const b of DECO.bubbles) drawBubble(ctx, b, ts)
         drawBorder(ctx, WORLD_W, WORLD_H)
 
-        for (const o of others) { drawCreature(ctx, o); drawNameplate(ctx, o) }
-        drawCreature(ctx, player)
+        for (const o of others) { drawFish(ctx, o); drawNameplate(ctx, o) }
+        drawFish(ctx, player)
         drawNameplate(ctx, player)
         drawSeaweedLayer(ctx, DECO.seaweed, 'fg', ts)
 
