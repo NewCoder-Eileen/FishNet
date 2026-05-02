@@ -113,8 +113,13 @@ export default function EventPage() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    let cancelled = false
+    let cleanup   = () => {}
+    ;(async () => {
+    let me
+    try { me = await loadProfile() } catch { me = {} }
+    if (cancelled) return
     try {
-      const me      = loadProfile()
       const style   = getStyle(me.fish?.styleId)
       const myHue   = style.hue
       const myAccessories = {
@@ -271,7 +276,7 @@ export default function EventPage() {
       }
 
       animId = requestAnimationFrame(loop)
-      return () => {
+      cleanup = () => {
         cancelAnimationFrame(animId)
         clearInterval(broadcastId)
         unsub()
@@ -282,8 +287,9 @@ export default function EventPage() {
       }
     } catch (err) {
       console.error('EventPage error:', err)
-      return () => {}
     }
+    })()
+    return () => { cancelled = true; cleanup() }
   }, [])
 
   function handleViewProfile(user) {

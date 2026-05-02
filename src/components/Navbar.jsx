@@ -14,6 +14,7 @@ function fmtHandle(username) {
 const NAV_ITEMS = [
   { label: 'Home',    href: '/' },
   { label: 'Connect', href: '/connect' },
+  { label: 'Friends', href: '/friends' },
   { label: 'Events',  href: '/join' },
 ]
 

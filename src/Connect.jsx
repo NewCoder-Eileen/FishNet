@@ -1,49 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from './components/Navbar'
 import BubbleBackground from './components/BubbleBackground'
-import { getSession } from './lib/auth'
+import { getSession, subscribeAccounts } from './lib/auth'
+import { subscribeProfiles } from './lib/profile'
+import {
+  subscribeMyRelations,
+  sendRequest    as relSendRequest,
+  clearRelation  as relClearRelation,
+  acceptRequest  as relAcceptRequest,
+} from './lib/relations'
 import './App.css'
 
-const ACCOUNTS_KEY = 'fishnet_accounts'
-
-// ── Storage helpers ────────────────────────────────────────────────
-function loadAccounts() {
-  try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}') } catch { return {} }
-}
-
-function loadProfileFor(username) {
-  if (!username) return null
-  try { return JSON.parse(localStorage.getItem(`fishnet_profile_${username}`) || 'null') } catch { return null }
-}
-
-function relationsKey(username) { return `fishnet_connect_${username}` }
-
-function loadRelations(username) {
-  if (!username) return {}
-  try { return JSON.parse(localStorage.getItem(relationsKey(username)) || '{}') } catch { return {} }
-}
-
-function saveRelations(username, rel) {
-  if (!username) return
-  localStorage.setItem(relationsKey(username), JSON.stringify(rel))
-}
-
-function patchRelationsFor(otherUsername, patch) {
-  const cur = loadRelations(otherUsername)
-  saveRelations(otherUsername, { ...cur, ...patch })
-}
-
-function clearRelationFor(otherUsername, removeKey) {
-  const cur = loadRelations(otherUsername)
-  delete cur[removeKey]
-  saveRelations(otherUsername, cur)
-}
-
-function buildCard(username) {
-  const accounts = loadAccounts()
+// Build a friend-card data object from a username + cached accounts/profiles maps.
+function buildCard(username, accounts, profiles) {
   const acc = accounts[username]
   if (!acc) return null
-  const profile = loadProfileFor(username) || {}
+  const profile = profiles[username] || {}
   const displayName = profile.name?.trim() || acc.username
   const interests   = profile.interests || []
   const goals       = profile.goals || []
@@ -73,39 +45,65 @@ function hash01(str) {
   return ((h >>> 0) % 100000) / 100000
 }
 
+// Same key encoding used by lib/auth.js, lib/profile.js, lib/relations.js,
+// and EventPage broadcasts.
+function encodeKey(k) {
+  return (k || '').toLowerCase().replace(/[.#$[\]/]/g, '_')
+}
+
+// Best-effort: turn an encoded profile key back into something readable when
+// no profile.name and no /accounts entry are available. Replaces `_` between
+// alphanumerics with a `.` only when the key looks like an email.
+function prettifyKey(k) {
+  if (!k) return ''
+  return k.includes('@') ? k.replace(/_/g, '.') : k
+}
+
 // ── Page ───────────────────────────────────────────────────────────
 function Connect() {
   const session    = getSession()
   const myUsername = session?.username || ''
 
-  const [accounts,  setAccounts]      = useState(loadAccounts)
-  const [relations, setRelations]     = useState(() => loadRelations(myUsername))
-  const [myProfile, setMyProfile]     = useState(() => loadProfileFor(myUsername))
+  // Live state mirrored from Firebase.
+  const [accountsMap, setAccountsMap] = useState({})  // { keyEncoded: { username, password, email } }
+  const [profilesMap, setProfilesMap] = useState({})  // { keyEncoded: profile }
+  const [myRelations, setMyRelations] = useState({})  // { otherKeyEncoded: status }
+
   const [selectedFriend, setSelected] = useState(null)
   const [toasts, setToasts]           = useState([])
   const timeoutsRef                    = useRef([])
 
   useEffect(() => {
-    function refresh() {
-      setAccounts(loadAccounts())
-      setRelations(loadRelations(myUsername))
-      setMyProfile(loadProfileFor(myUsername))
-    }
-    const id = setInterval(refresh, 1500)
-    window.addEventListener('storage', refresh)
-    return () => { clearInterval(id); window.removeEventListener('storage', refresh) }
-  }, [myUsername])
+    const offA = subscribeAccounts(setAccountsMap)
+    const offP = subscribeProfiles(setProfilesMap)
+    return () => { offA?.(); offP?.() }
+  }, [])
 
   useEffect(() => {
-    if (!myUsername) return
-    saveRelations(myUsername, relations)
-  }, [relations, myUsername])
+    if (!myUsername) { setMyRelations({}); return }
+    const off = subscribeMyRelations(myUsername, setMyRelations)
+    return () => off?.()
+  }, [myUsername])
 
   useEffect(() => () => {
     timeoutsRef.current.forEach(clearTimeout)
     timeoutsRef.current = []
   }, [])
 
+  // The canonical list of users is /profiles — every user who has ever signed
+  // up, joined an event, or saved a profile is here. /accounts only covers
+  // sign-ups since the migration, so it'd miss event-only users. We iterate
+  // profile keys and enrich with account email when we have it.
+  const accountByEncKey = useMemo(() => {
+    const out = {}
+    for (const [encKey, acc] of Object.entries(accountsMap)) {
+      out[encKey] = acc
+    }
+    return out
+  }, [accountsMap])
+
+  const myEncKey = encodeKey(myUsername)
+  const myProfile = profilesMap[myEncKey]
   const myTags = useMemo(() => {
     const set = new Set()
     ;(myProfile?.interests || []).forEach(t => t && set.add(t.toLowerCase()))
@@ -114,35 +112,55 @@ function Connect() {
   }, [myProfile])
 
   const bubbles = useMemo(() => {
-    return Object.values(accounts)
-      .filter(acc => acc.username !== myUsername)
-      .map(acc => {
-        const card = buildCard(acc.username)
-        if (!card) return null
-        const merged = [...(card.interests || []), ...(card.goals || [])]
+    return Object.entries(profilesMap)
+      .filter(([encKey]) => encKey !== myEncKey)
+      .map(([encKey, profile]) => {
+        const acc       = accountByEncKey[encKey] || null
+        // Identity used for display + relation actions. Prefer the original
+        // username from /accounts (correct casing), fall back to a prettified
+        // version of the encoded key for event-only users.
+        const username  = acc?.username || prettifyKey(encKey)
+        const displayName = profile?.name?.trim() || username
+        const interests = profile?.interests || []
+        const goals     = profile?.goals || []
+        const description = profile?.bio?.trim()
+          || (interests.length ? interests.slice(0, 3).join(' · ') : 'New to FishNet')
+        const card = {
+          username,
+          email:           acc?.email || '',
+          displayName,
+          description,
+          interests,
+          goals,
+          socials:         profile?.socials || {},
+          customLinks:     profile?.customLinks || [],
+          spotifyPlaylist: profile?.spotifyPlaylist || '',
+          resumeLink:      profile?.resume || '',
+        }
+        const merged = [...interests, ...goals]
         const seen   = new Set()
         const shared = []
         for (const t of merged) {
-          const key = (t || '').toLowerCase()
-          if (!key || seen.has(key)) continue
-          if (myTags.has(key)) { shared.push(t); seen.add(key) }
+          const k = (t || '').toLowerCase()
+          if (!k || seen.has(k)) continue
+          if (myTags.has(k)) { shared.push(t); seen.add(k) }
         }
-        return { card, shared, status: relations[card.username] }
+        return { card, shared, status: myRelations[encKey], encKey }
       })
-      .filter(Boolean)
       .filter(b => b.status !== 'friend')
       .sort((a, b) => {
-        // Incoming requests bubble to the top, then most shared tags first,
-        // then alphabetical by display name so the order is stable.
         const aIn = a.status === 'pending_in' ? 1 : 0
         const bIn = b.status === 'pending_in' ? 1 : 0
         if (aIn !== bIn) return bIn - aIn
         if (a.shared.length !== b.shared.length) return b.shared.length - a.shared.length
         return a.card.displayName.localeCompare(b.card.displayName)
       })
-  }, [accounts, relations, myUsername, myTags])
+  }, [profilesMap, accountByEncKey, myRelations, myEncKey, myTags])
 
-  const labelOf = (u) => buildCard(u)?.displayName || u
+  const labelOf = (u) => {
+    const enc = encodeKey(u)
+    return profilesMap[enc]?.name?.trim() || accountByEncKey[enc]?.username || u
+  }
 
   function pushToast(text, kind = 'info') {
     const id = Date.now() + Math.random()
@@ -151,29 +169,36 @@ function Connect() {
     timeoutsRef.current.push(tid)
   }
 
-  function sendRequest(target) {
-    if (!myUsername || !target || target === myUsername || relations[target]) return
-    setRelations(r => ({ ...r, [target]: 'pending_out' }))
-    patchRelationsFor(target, { [myUsername]: 'pending_in' })
-    pushToast(`Friend request sent to ${labelOf(target)}`, 'info')
+  async function sendRequest(target) {
+    if (!myUsername || !target || target === myUsername || myRelations[encodeKey(target)]) return
+    try {
+      await relSendRequest(myUsername, target)
+      pushToast(`Friend request sent to ${labelOf(target)}`, 'info')
+    } catch (e) {
+      console.error(e)
+      pushToast('Could not send request — try again.', 'error')
+    }
   }
 
-  function cancelRequest(target) {
-    setRelations(r => { const n = { ...r }; delete n[target]; return n })
-    clearRelationFor(target, myUsername)
-    pushToast(`Cancelled request to ${labelOf(target)}`, 'info')
+  async function cancelRequest(target) {
+    try {
+      await relClearRelation(myUsername, target)
+      pushToast(`Cancelled request to ${labelOf(target)}`, 'info')
+    } catch (e) { console.error(e) }
   }
 
-  function acceptRequest(target) {
-    setRelations(r => ({ ...r, [target]: 'friend' }))
-    patchRelationsFor(target, { [myUsername]: 'friend' })
-    pushToast(`You and ${labelOf(target)} are now friends`, 'success')
+  async function acceptRequest(target) {
+    try {
+      await relAcceptRequest(myUsername, target)
+      pushToast(`You and ${labelOf(target)} are now friends`, 'success')
+    } catch (e) { console.error(e) }
   }
 
-  function declineRequest(target) {
-    setRelations(r => { const n = { ...r }; delete n[target]; return n })
-    clearRelationFor(target, myUsername)
-    pushToast(`Declined request from ${labelOf(target)}`, 'info')
+  async function declineRequest(target) {
+    try {
+      await relClearRelation(myUsername, target)
+      pushToast(`Declined request from ${labelOf(target)}`, 'info')
+    } catch (e) { console.error(e) }
   }
 
   function messageFriend(target) {
@@ -358,7 +383,7 @@ function Connect() {
                 </div>
                 <div className="modal-actions">
                   {(() => {
-                    const status = relations[selectedFriend.username]
+                    const status = myRelations[encodeKey(selectedFriend.username)]
                     if (status === 'friend')      return <span className="added-pill">Friends ✓</span>
                     if (status === 'pending_out') return <button className="glass-btn"         onClick={() => cancelRequest(selectedFriend.username)}>Cancel request</button>
                     if (status === 'pending_in')  return (

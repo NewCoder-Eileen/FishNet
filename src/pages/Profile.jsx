@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadProfile, saveProfile } from '../lib/profile'
-import { getSession, changeUsername, changeEmail, login, getAccountInfo } from '../lib/auth'
+import { loadProfile, saveProfile, EMPTY_PROFILE } from '../lib/profile'
+import { getSession, changeUsername, changeEmail, login, getAccountInfo, subscribeAccounts } from '../lib/auth'
 import { getStyle } from '../aquarium/fishStyles'
 import FishBowl from '../components/FishBowl'
 import { BowlFish, FishPreview } from '../components/BowlFish'
@@ -134,23 +134,23 @@ function AccountModal({ session, accountInfo, onClose }) {
   const [confirmEmail,     setConfirmEmail]     = useState('')
   const [emailError,       setEmailError]       = useState('')
 
-  function handleUsernameConfirm() {
+  async function handleUsernameConfirm() {
     if (!session) return
-    const result = changeUsername(session.username, usernamePassword, newUsername)
+    const result = await changeUsername(session.username, usernamePassword, newUsername)
     if (!result.ok) { setUsernameError(result.error); return }
     setUsernameMode('idle'); setUsernamePassword(''); setUsernameError('')
   }
-  function handleEmailVerify() {
+  async function handleEmailVerify() {
     if (!session) return
-    const result = login(session.username, emailPassword)
+    const result = await login(session.username, emailPassword)
     if (!result.ok) { setEmailError('Incorrect password.'); return }
     setEmailError(''); setEmailStep(2)
   }
-  function handleEmailConfirm() {
+  async function handleEmailConfirm() {
     if (!session) return
     if (!newEmail)                  { setEmailError('Email cannot be empty.'); return }
     if (newEmail !== confirmEmail)  { setEmailError("Emails don't match."); return }
-    const result = changeEmail(session.username, emailPassword, newEmail)
+    const result = await changeEmail(session.username, emailPassword, newEmail)
     if (!result.ok) { setEmailError(result.error); return }
     setEmailStep(3); setEmailPassword(''); setNewEmail(''); setConfirmEmail(''); setEmailError('')
   }
@@ -263,11 +263,11 @@ const DOTS = [
 
 // ── Page ──
 export default function Profile() {
-  const navigate    = useNavigate()
-  const session     = getSession()
-  const accountInfo = session ? getAccountInfo(session.username) : null
+  const navigate     = useNavigate()
+  const session      = getSession()
+  const [accountInfo, setAccountInfo] = useState(null)
 
-  const [profile, setProfile]           = useState(loadProfile)
+  const [profile, setProfile]           = useState(EMPTY_PROFILE)
   const [draft, setDraft]               = useState(null)
   const [openSection, setOpenSection]   = useState(null)
   const [fishEditOpen, setFishEditOpen] = useState(false)
@@ -281,6 +281,21 @@ export default function Profile() {
   // Keep ref in sync every render — zero cost, guarantees handleFishSave
   // always reads the up-to-date value regardless of closure age.
   profileRef.current = profile
+
+  // Load my profile + account info from Firebase on mount, refresh when the
+  // accounts tree changes (so a username change elsewhere reflects here).
+  useEffect(() => {
+    let cancelled = false
+    loadProfile().then(p => { if (!cancelled) setProfile(p) })
+    if (session?.username) {
+      getAccountInfo(session.username).then(info => { if (!cancelled) setAccountInfo(info) })
+    }
+    const off = subscribeAccounts(() => {
+      if (session?.username) getAccountInfo(session.username).then(info => { if (!cancelled) setAccountInfo(info) })
+    })
+    return () => { cancelled = true; off?.() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.username])
 
   // Open the right modal when the fish swims into a dot. Throttle so we don't
   // re-open immediately if the user closes and lingers.

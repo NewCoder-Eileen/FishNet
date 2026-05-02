@@ -20,23 +20,34 @@ export default function Login() {
 
   const [emailTaken, setEmailTaken] = useState(false)
 
-  function handleSubmit(e) {
+  const [busy, setBusy] = useState(false)
+
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setEmailTaken(false)
-    if (mode === 'signup') {
-      if (password !== confirm) { setError("Passwords don't match."); return }
-      const res = signup(username, password, email)
-      if (!res.ok) {
-        setError(res.error)
-        if (res.error.toLowerCase().includes('already exists')) setEmailTaken(true)
-        return
+    if (busy) return
+    setBusy(true)
+    try {
+      if (mode === 'signup') {
+        if (password !== confirm) { setError("Passwords don't match."); return }
+        const res = await signup(username, password, email)
+        if (!res.ok) {
+          setError(res.error)
+          if (res.error.toLowerCase().includes('already exists')) setEmailTaken(true)
+          return
+        }
+      } else {
+        const res = await login(username, password)
+        if (!res.ok) { setError(res.error); return }
       }
-    } else {
-      const res = login(username, password)
-      if (!res.ok) { setError(res.error); return }
+      navigate(next, { replace: true })
+    } catch (err) {
+      setError('Network error — please try again.')
+      console.error(err)
+    } finally {
+      setBusy(false)
     }
-    navigate(next, { replace: true })
   }
 
   function switchToLoginWithEmail() {
@@ -52,10 +63,19 @@ export default function Login() {
     setError(''); setConfirm(''); setEmail(''); setEmailTaken(false)
   }
 
-  function handleDemo() {
-    signInAsDemo()
-    seedDemoProfileIfEmpty()
-    navigate(next, { replace: true })
+  async function handleDemo() {
+    if (busy) return
+    setBusy(true)
+    try {
+      await signInAsDemo()
+      await seedDemoProfileIfEmpty()
+      navigate(next, { replace: true })
+    } catch (err) {
+      setError('Network error — please try again.')
+      console.error(err)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (

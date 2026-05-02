@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://fishnet-72781-default-rtdb.firebaseio.com/profiles.json\" --max-time 5)",
+      "Bash(curl -s \"https://fishnet-72781-default-rtdb.firebaseio.com/relations.json\" --max-time 5)"
+    ]
+  }
+}

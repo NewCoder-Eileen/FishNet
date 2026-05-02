@@ -5,6 +5,7 @@ import EventPage from './pages/EventPage'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Connect from './Connect.jsx'
+import Friends from './pages/Friends'
 import UserProfile from './pages/UserProfile'
 import RequireAuth from './components/RequireAuth'
 import './App.css'
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/join"        element={<RequireAuth><JoinEvent /></RequireAuth>} />
         <Route path="/event/:code" element={<RequireAuth><EventPage /></RequireAuth>} />
         <Route path="/connect"     element={<RequireAuth><Connect /></RequireAuth>} />
+        <Route path="/friends"     element={<RequireAuth><Friends /></RequireAuth>} />
         <Route path="/user/:username" element={<UserProfile />} />
       </Routes>
     </BrowserRouter>

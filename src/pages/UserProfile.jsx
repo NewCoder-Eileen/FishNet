@@ -37,7 +37,12 @@ export default function UserProfile() {
   const [activePanel,  setActivePanel]  = useState(null)
 
   // Load viewer's own fish style so their fish swims in the bowl
-  const myProfile  = loadProfile()
+  const [myProfile, setMyProfile] = useState({})
+  useEffect(() => {
+    let cancelled = false
+    loadProfile().then(p => { if (!cancelled) setMyProfile(p) })
+    return () => { cancelled = true }
+  }, [])
   const myStyle    = getStyle(myProfile.fish?.styleId)
 
   // Their fish style (shown statically in the id card)
