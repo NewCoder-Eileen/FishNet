@@ -1,14 +1,13 @@
 import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import Navbar from './components/Navbar'
+import Navbar from '../components/Navbar'
 import FishnetBackground from './components/FishnetBackground'
 import JellyfishField from './components/JellyfishField'
 import FeatureCards from './components/FeatureCards'
-import '../styles/fonts.css'
 
 const ACCENT = '#7c5cd8'
 
-export default function ConvixApp() {
+export default function FishnetHome() {
   const navigate = useNavigate()
 
   return (

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import Navbar from '../components/Navbar'
 import { WORLD, MOVEMENT } from '../aquarium/assets'
 import { generateDecorations, drawBackground, drawBorder, drawSeaweedLayer, updateSeaweed, drawCoral, drawBubble } from '../aquarium/draw'
 import { ref, set, onValue, remove, onDisconnect } from 'firebase/database'
@@ -279,11 +278,10 @@ export default function EventPage() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <canvas 
-        ref={canvasRef} 
-        style={{ display: 'block', position: 'absolute', top: 0, left: 0, backgroundColor: '#1a3a52' }} 
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'block', position: 'absolute', top: 0, left: 0, backgroundColor: '#1a3a52' }}
       />
-      <Navbar dark />
 
       {showWelcome && (
         <div className="welcome-toast">

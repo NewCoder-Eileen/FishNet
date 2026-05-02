@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
 import BubbleBackground from '../components/BubbleBackground'
 import '../App.css'
 
@@ -61,7 +60,6 @@ export default function JoinEvent() {
   return (
     <div className="join-page">
       <BubbleBackground count={14} />
-      <Navbar />
       <button className="join-back" onClick={() => navigate('/')}>← Back</button>
 
       <div className="join-container">
