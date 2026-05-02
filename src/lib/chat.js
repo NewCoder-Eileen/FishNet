@@ -1,5 +1,5 @@
 import { db } from './firebase'
-import { ref, push, update, onValue, off, remove } from 'firebase/database'
+import { ref, push, update, onValue, off, remove, get } from 'firebase/database'
 import { getSession } from './auth'
 import { useEffect, useState } from 'react'
 
@@ -136,4 +136,14 @@ export function useIncomingRequestCount() {
     })
   }, [])
   return count
+}
+
+export async function getAcceptedConnectionCount() {
+  const me = myUserId()
+  if (!me) return 0
+  try {
+    const snap = await get(ref(db, `connections/${me}`))
+    if (!snap.exists()) return 0
+    return Object.values(snap.val()).filter(c => c?.status === 'accepted').length
+  } catch { return 0 }
 }

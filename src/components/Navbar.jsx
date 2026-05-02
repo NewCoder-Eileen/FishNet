@@ -7,10 +7,11 @@ import { playChime } from '../lib/audio'
 
 const ACCENT = '#7c5cd8'
 
-// Show the username as-is when it looks like an email; otherwise prefix with @.
+// For emails show @localpart; for plain usernames prefix with @.
 function fmtHandle(username) {
   if (!username) return '@guest'
-  return username.includes('@') ? username : `@${username}`
+  if (username.includes('@')) return '@' + username.split('@')[0]
+  return `@${username}`
 }
 
 const NAV_ITEMS = [
@@ -112,8 +113,11 @@ export default function Navbar() {
             boxShadow: '0 10px 28px rgba(30, 60, 110, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.45)',
           }}
         >
-          {/* Desktop nav — left-aligned, account cluster stays on the right */}
-          <nav className="hidden md:flex items-center gap-1 text-[14px] text-neutral-800 ml-2">
+          {/* Left balance — desktop only, mirrors the right cluster so the nav stays truly centered */}
+          <div className="hidden md:block flex-1" />
+
+          {/* Desktop nav — sits between the two flex-1 spacers */}
+          <nav className="hidden md:flex flex-none items-center gap-1 text-[14px] text-neutral-800">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.label}
@@ -132,8 +136,8 @@ export default function Navbar() {
             </button>
           </nav>
 
-          {/* Right cluster */}
-          <div className="ml-auto flex items-center gap-2">
+          {/* Right cluster — flex-1 + justify-end on desktop so it mirrors the left spacer */}
+          <div className="ml-auto flex items-center gap-2 md:flex-1 md:ml-0 md:justify-end">
             {loggedIn && (
               <>
                 <button
