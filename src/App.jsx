@@ -1,6 +1,6 @@
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import './App.css'
-
-const NAV_LINKS = ['Home', 'Profile', 'Join Event', 'Connect', 'About', 'Privacy']
+import Connect from './Connect.jsx'
 
 const NAV_BUTTONS = [
   { label: 'Profile',    graphic: null },
@@ -15,62 +15,76 @@ function Navbar() {
         {null ?? <div className="nav-logo-placeholder">Logo</div>}
       </div>
       <ul className="nav-links">
-        {NAV_LINKS.map((link) => (
-          <li key={link}><a href={`#${link.toLowerCase().replace(' ', '-')}`}>{link}</a></li>
-        ))}
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/profile">Profile</Link></li>
+        <li><Link to="/join-event">Join Event</Link></li>
+        <li><Link to="/connect">Connect</Link></li>
+        <li><Link to="/about">About</Link></li>
+        <li><Link to="/privacy">Privacy</Link></li>
       </ul>
     </nav>
   )
 }
 
-function Jellyfish({ label, graphic }) {
+function Home() {
   return (
-    <button type="button" className="jellyfish">
-      <div className="jelly-bell">
-        <div className="jelly-shine" />
-        <div className="jelly-graphic">
-          {graphic && <img src={graphic} alt="" />}
+    <main>
+      <section className="hero">
+        <div className="hero-logo-placeholder">Your Logo Here</div>
+      </section>
+    </main>
+  )
+}
+
+function About() {
+  return (
+    <main>
+      <section className="about-section">
+        <h2>About</h2>
+        <p>Tell your story here — what is fishnet, who is it for, and what makes it different.</p>
+      </section>
+    </main>
+  )
+}
+
+function JoinEvent() {
+  return (
+    <main>
+      <section className="btn-section">
+        <div className="btn-grid">
+          {NAV_BUTTONS.map((btn, i) => (
+            <Jellyfish key={btn.label} {...btn} delay={i * 0.8} />
+          ))}
         </div>
-        <span className="jelly-label">{label}</span>
-      </div>
-      <div className="jelly-tentacles">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="tentacle" style={{ '--i': i }} />
-        ))}
-      </div>
-    </button>
+      </section>
+    </main>
+  )
+}
+
+function Privacy() {
+  return (
+    <main>
+      <section className="privacy-section">
+        <h2>Privacy</h2>
+        <p>Your privacy policy goes here.</p>
+      </section>
+    </main>
   )
 }
 
 function App() {
   return (
-    <>
+    <Router>
       <Navbar />
-
-      <main>
-        <section className="hero" id="home">
-          <div className="hero-logo-placeholder">Your Logo Here</div>
-        </section>
-
-        <section className="about-section" id="about">
-          <h2>About</h2>
-          <p>Tell your story here — what is fishnet, who is it for, and what makes it different.</p>
-        </section>
-
-        <section className="btn-section" id="join-event">
-          <div className="btn-grid">
-            {NAV_BUTTONS.map((btn, i) => (
-              <Jellyfish key={btn.label} {...btn} delay={i * 0.8} />
-            ))}
-          </div>
-        </section>
-
-        <section className="privacy-section" id="privacy">
-          <h2>Privacy</h2>
-          <p>Your privacy policy goes here.</p>
-        </section>
-      </main>
-    </>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<div>Profile Page (Coming Soon)</div>} />
+        <Route path="/join-event" element={<JoinEvent />} />
+        <Route path="/connect" element={<Connect />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/privacy" element={<Privacy />} />
+      </Routes>
+    </Router>
   )
 }
 
