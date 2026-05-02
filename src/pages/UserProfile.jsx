@@ -9,10 +9,8 @@ import { BowlFish, FishPreview } from '../components/BowlFish'
 import {
   myUserId, getDmId,
   sendDm, markDmRead, subscribeDmMessages,
+  sendConnectionRequest, acceptConnection, subscribeConnection,
 } from '../lib/chat'
-import {
-  subscribeRelation, sendRequest as sendFriendRequest, acceptRequest,
-} from '../lib/relations'
 import seaweedA from '../assets/seaweed-a.png'
 import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
@@ -99,11 +97,10 @@ export default function UserProfile() {
     return () => { unsubP(); unsubA() }
   }, [userKey])
 
-  // Connection status (synced with Friends page via relations.js)
+  // Connection status
   useEffect(() => {
     if (!isLoggedIn() || isSelf) return
-    const me = myUserId()
-    return subscribeRelation(me, userKey, setConnStatus)
+    return subscribeConnection(userKey, setConnStatus)
   }, [userKey, isSelf])
 
   // DM messages when drawer is open
@@ -133,23 +130,22 @@ export default function UserProfile() {
 
   function handleConnect() {
     if (!isLoggedIn()) { navigate('/login'); return }
-    const me = myUserId()
     if (!connStatus) {
-      sendFriendRequest(me, userKey)
-    } else if (connStatus === 'pending_in') {
-      acceptRequest(me, userKey)
+      sendConnectionRequest(userKey, profile.name || displayHandle)
+    } else if (connStatus?.status === 'received') {
+      acceptConnection(userKey)
     }
   }
 
   const connectLabel = () => {
-    if (!connStatus)                  return 'Add Friend'
-    if (connStatus === 'pending_out') return 'Request Sent'
-    if (connStatus === 'pending_in')  return 'Accept Request'
-    if (connStatus === 'friend')      return 'Connected ✓'
+    if (!connStatus)                          return 'Add Friend'
+    if (connStatus.status === 'sent')         return 'Request Sent'
+    if (connStatus.status === 'received')     return 'Accept Request'
+    if (connStatus.status === 'accepted')     return 'Connected ✓'
     return 'Add Friend'
   }
 
-  const connectDisabled = connStatus === 'pending_out' || connStatus === 'friend'
+  const connectDisabled = connStatus?.status === 'sent' || connStatus?.status === 'accepted'
 
   // Info dots
   const DOTS = [
@@ -257,7 +253,7 @@ export default function UserProfile() {
         {!isSelf && (
           <div className="bowl-toolbar">
             <button
-              className={`up-connect-btn ${connStatus === 'friend' ? 'up-connected' : ''}`}
+              className={`up-connect-btn ${connStatus?.status === 'accepted' ? 'up-connected' : ''}`}
               onClick={handleConnect}
               disabled={connectDisabled}
             >

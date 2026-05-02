@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, LogOut, Menu, User, MessageCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, LogOut, Menu, User, MessageCircle, Bell } from 'lucide-react'
 import { isLoggedIn, logout, getSession } from '../lib/auth'
-import { useUnreadDmCount } from '../lib/chat'
+import { useUnreadDmCount, useIncomingRequestCount } from '../lib/chat'
 import { playChime } from '../lib/audio'
 
 const ACCENT = '#7c5cd8'
@@ -67,13 +67,20 @@ export default function Navbar() {
   const loggedIn  = isLoggedIn()
   const session   = loggedIn ? getSession() : null
   const initial   = session?.username?.[0]?.toUpperCase() || '?'
-  const unreadDms    = useUnreadDmCount()
-  const prevUnreadRef = useRef(null)
+  const unreadDms      = useUnreadDmCount()
+  const incomingReqs   = useIncomingRequestCount()
+  const prevUnreadRef  = useRef(null)
+  const prevReqRef     = useRef(null)
   useEffect(() => {
     if (prevUnreadRef.current === null) { prevUnreadRef.current = unreadDms; return }
     if (unreadDms > prevUnreadRef.current) playChime()
     prevUnreadRef.current = unreadDms
   }, [unreadDms])
+  useEffect(() => {
+    if (prevReqRef.current === null) { prevReqRef.current = incomingReqs; return }
+    if (incomingReqs > prevReqRef.current) playChime()
+    prevReqRef.current = incomingReqs
+  }, [incomingReqs])
 
   function go(href) { setOpen(false); setAccountOpen(false); navigate(href) }
   function handleLogout() { setOpen(false); setAccountOpen(false); logout(); navigate('/login') }
@@ -128,17 +135,30 @@ export default function Navbar() {
           {/* Right cluster */}
           <div className="ml-auto flex items-center gap-2">
             {loggedIn && (
-              <button
-                onClick={() => go('/messages')}
-                className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 transition-colors"
-                aria-label="Messages"
-                title="Messages"
-              >
-                <MessageCircle size={18} className="text-neutral-700" />
-                {unreadDms > 0 && (
-                  <span className="nav-notif-badge">{unreadDms > 9 ? '9+' : unreadDms}</span>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => go('/friends')}
+                  className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 transition-colors"
+                  aria-label="Friend requests"
+                  title="Friend requests"
+                >
+                  <Bell size={18} className="text-neutral-700" />
+                  {incomingReqs > 0 && (
+                    <span className="nav-notif-badge">{incomingReqs > 9 ? '9+' : incomingReqs}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => go('/messages')}
+                  className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 transition-colors"
+                  aria-label="Messages"
+                  title="Messages"
+                >
+                  <MessageCircle size={18} className="text-neutral-700" />
+                  {unreadDms > 0 && (
+                    <span className="nav-notif-badge">{unreadDms > 9 ? '9+' : unreadDms}</span>
+                  )}
+                </button>
+              </>
             )}
             {loggedIn ? (
               <div className="relative" ref={accountWrapRef}>
