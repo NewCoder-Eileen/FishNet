@@ -510,7 +510,7 @@ main {
   animation: tentacle-sway 2.5s ease-in-out infinite;
   animation-delay: calc(var(--i) * 0.18s);
   transform-origin: top center;
-  height: calc(40px + (var(--i) % 3) * 14px);
+  height: calc(40px + var(--i) * 2px);
 }
 
 @keyframes tentacle-sway {
@@ -814,10 +814,6 @@ main {
   display: flex;
   justify-content: center;
   gap: 16px;
-}
-
-.modal-actions button {
-  /* Inherits from .glass-btn */
 }
 
 /* ── Glass Buttons ── */
