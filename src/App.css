@@ -19,25 +19,27 @@
 html, body {
   min-height: 100%;
   margin: 0;
-  /* Tropical reef — bright surface, teal mid-water, deep blue base */
+  /* Ocean with purple undertones */
   background:
     /* surface shimmer blobs */
-    radial-gradient(ellipse at 25% 2%,  rgba(230, 252, 255, 0.85) 0%, transparent 35%),
-    radial-gradient(ellipse at 75% 4%,  rgba(210, 248, 255, 0.75) 0%, transparent 30%),
-    radial-gradient(ellipse at 50% 0%,  rgba(255, 255, 255, 0.55) 0%, transparent 22%),
-    /* caustic shimmer mid-left */
-    radial-gradient(ellipse at 15% 35%, rgba(100, 210, 235, 0.25) 0%, transparent 40%),
-    /* purple coral hint at bottom */
-    radial-gradient(ellipse at 50% 100%, rgba(140, 120, 190, 0.35) 0%, transparent 40%),
+    radial-gradient(ellipse at 25% 2%,  rgba(220, 210, 255, 0.7)  0%, transparent 35%),
+    radial-gradient(ellipse at 75% 4%,  rgba(200, 230, 255, 0.65) 0%, transparent 30%),
+    radial-gradient(ellipse at 50% 0%,  rgba(240, 230, 255, 0.5)  0%, transparent 22%),
+    /* purple mid-water bloom */
+    radial-gradient(ellipse at 70% 45%, rgba(130, 80, 200, 0.18)  0%, transparent 50%),
+    radial-gradient(ellipse at 20% 60%, rgba(100, 60, 180, 0.14)  0%, transparent 45%),
+    /* deep purple glow at bottom */
+    radial-gradient(ellipse at 50% 100%, rgba(110, 60, 180, 0.45) 0%, transparent 50%),
     /* main water gradient */
     linear-gradient(180deg,
-      #d0f4fa 0%,
-      #8dd4e8 12%,
-      #42a8c8 30%,
-      #2a88aa 52%,
-      #1e6888 72%,
-      #164e70 88%,
-      #0e3850 100%
+      #c8d8f8 0%,
+      #8ab8e8 10%,
+      #5890c8 25%,
+      #3a68a8 42%,
+      #2a4890 58%,
+      #1e2e78 74%,
+      #160a60 88%,
+      #0e0840 100%
     );
   background-attachment: fixed;
   color: #0e2a3a;
@@ -174,6 +176,34 @@ main {
   100% { transform: rotate(4deg)  scaleX(0.85); }
 }
 
+/* ── Spotlight ray ── */
+.spotlight-ray {
+  position: absolute;
+  top: -10%;
+  right: 8%;
+  width: 340px;
+  height: 140%;
+  pointer-events: none;
+  z-index: 0;
+  transform-origin: top center;
+  transform: rotate(12deg);
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(220, 210, 255, 0.45) 18%,
+    rgba(180, 160, 255, 0.22) 45%,
+    rgba(140, 120, 220, 0.08) 70%,
+    transparent 100%
+  );
+  border-radius: 0 0 60% 60%;
+  filter: blur(18px);
+  animation: spotlight-breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes spotlight-breathe {
+  0%   { opacity: 0.85; transform: rotate(11deg) scaleX(1);    }
+  100% { opacity: 1;    transform: rotate(13deg) scaleX(1.06); }
+}
+
 /* ── Ambient bubbles ── */
 .ambient-bubbles {
   position: absolute;
@@ -246,6 +276,31 @@ main {
 @keyframes plant-sway {
   0%   { transform: rotate(-10deg) scaleX(1);    }
   100% { transform: rotate(10deg)  scaleX(0.85); }
+}
+
+/* ── Background jellyfish ── */
+.bg-jellies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.bg-jellyfish {
+  position: absolute;
+  opacity: 0;
+  animation: bg-jelly-drift linear infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes bg-jelly-drift {
+  0%   { transform: translateY(0)      translateX(0)             rotate(var(--jrotate));       opacity: 0; }
+  6%   { opacity: var(--jopacity); }
+  50%  { transform: translateY(-45vh)  translateX(var(--jdrift)) rotate(calc(var(--jrotate) * -0.5)); opacity: calc(var(--jopacity) * 0.85); }
+  93%  { opacity: calc(var(--jopacity) * 0.4); }
+  100% { transform: translateY(-105vh) translateX(calc(var(--jdrift) * 0.3)) rotate(0deg);    opacity: 0; }
 }
 
 /* ── Hero grid — logo centered, boxes in corners ── */

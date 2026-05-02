@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import logo from '../assets/logo.png'
+import jellyfish from '../assets/jellyfish.png'
 import '../App.css'
 
 const NAV_BUTTONS = [
@@ -110,6 +111,43 @@ function Particles() {
   )
 }
 
+// ── Background jellyfish ──
+function BackgroundJellyfish() {
+  const jellies = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
+    id: i,
+    left:    5  + Math.random() * 88,
+    bottom: -30 + Math.random() * 40,
+    size:   90  + Math.random() * 110,
+    delay:       Math.random() * 20,
+    dur:    24  + Math.random() * 18,
+    drift:  (Math.random() - 0.5) * 100,
+    rotate: (Math.random() - 0.5) * 20,
+    opacity: 0.55 + Math.random() * 0.3,
+  })), [])
+
+  return (
+    <div className="bg-jellies" aria-hidden>
+      {jellies.map(j => (
+        <img
+          key={j.id}
+          src={jellyfish}
+          className="bg-jellyfish"
+          style={{
+            left: `${j.left}%`,
+            bottom: `${j.bottom}%`,
+            width: j.size,
+            '--jdrift': `${j.drift}px`,
+            '--jrotate': `${j.rotate}deg`,
+            '--jopacity': j.opacity,
+            animationDuration: `${j.dur}s`,
+            animationDelay: `${j.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ── Light rays from top ──
 function LightRays() {
   const rays = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
@@ -187,8 +225,11 @@ function HeroSection() {
   return (
     <section className="hero-aquatic" id="home">
       <LightRays />
+      <div className="spotlight-ray" aria-hidden />
       <AmbientBubbles />
       <Particles />
+
+      <BackgroundJellyfish />
 
       <div className="hero-center">
         <FloatingLogo />
