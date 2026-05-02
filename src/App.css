@@ -300,6 +300,45 @@ main {
 }
 
 /* ── Background jellyfish ── */
+/* ── Background fish ── */
+.bg-fish-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.bg-fish-img {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bg-fish-img.ltr {
+  left: -120px;
+  animation: bg-fish-ltr linear infinite;
+}
+
+.bg-fish-img.rtl {
+  right: -120px;
+  animation: bg-fish-rtl linear infinite;
+}
+
+@keyframes bg-fish-ltr {
+  0%   { transform: translateX(0);      opacity: 0; }
+  5%   {                                opacity: 1; }
+  95%  { transform: translateX(110vw);  opacity: 0.8; }
+  100% { transform: translateX(115vw);  opacity: 0; }
+}
+
+@keyframes bg-fish-rtl {
+  0%   { transform: translateX(0)       scaleX(-1); opacity: 0; }
+  5%   {                                            opacity: 1; }
+  95%  { transform: translateX(-110vw)  scaleX(-1); opacity: 0.8; }
+  100% { transform: translateX(-115vw)  scaleX(-1); opacity: 0; }
+}
+
 .bg-jellies {
   position: absolute;
   inset: 0;
@@ -310,18 +349,17 @@ main {
 
 .bg-jellyfish {
   position: absolute;
-  opacity: 0;
+  bottom: -120px;
   animation: bg-jelly-drift linear infinite;
   pointer-events: none;
   user-select: none;
 }
 
 @keyframes bg-jelly-drift {
-  0%   { transform: translateY(0)      translateX(0)             rotate(var(--jrotate));       opacity: 0; }
-  6%   { opacity: var(--jopacity); }
-  50%  { transform: translateY(-45vh)  translateX(var(--jdrift)) rotate(calc(var(--jrotate) * -0.5)); opacity: calc(var(--jopacity) * 0.85); }
-  93%  { opacity: calc(var(--jopacity) * 0.4); }
-  100% { transform: translateY(-105vh) translateX(calc(var(--jdrift) * 0.3)) rotate(0deg);    opacity: 0; }
+  0%   { transform: translateY(0)       translateX(0);                        opacity: 0; }
+  6%   {                                                                        opacity: 1; }
+  93%  { transform: translateY(-95vh)   translateX(var(--jdrift));             opacity: 0.5; }
+  100% { transform: translateY(-110vh)  translateX(calc(var(--jdrift) * 0.8)); opacity: 0; }
 }
 
 /* ── Hero grid — logo centered, boxes in corners ── */
@@ -2074,11 +2112,18 @@ main {
   pointer-events: none;
 }
 .floating-logo-wrap { pointer-events: auto; }
-.floating-logo-img {
-  width: min(580px, 52vw);
-  filter: drop-shadow(0 14px 50px rgba(120, 60, 200, 0.35));
+
+.floating-logo-text {
+  font-family: 'Klephon', sans-serif;
+  font-size: clamp(72px, 12vw, 140px);
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  filter: drop-shadow(0 8px 40px rgba(120, 60, 200, 0.5))
+          drop-shadow(0 2px 12px rgba(80, 180, 255, 0.4));
   animation: heroLogoFloat 3.8s ease-in-out infinite;
+  user-select: none;
 }
+
 @keyframes heroLogoFloat {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-22px); }

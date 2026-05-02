@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import Navbar from '../components/Navbar'
-import logo from '../assets/logo.png'
 import seaweed1 from '../assets/seaweed1.webp'
 import seaweed2 from '../assets/seaweed2.webp'
 import iconProfile from '../assets/icon-profile.webp'
 import iconJoin    from '../assets/icon-join.webp'
 import iconConnect from '../assets/icon-connect.webp'
 import fishGLB from '../assets/FISHI.glb'
+import fishBlueCute from '../assets/fish-blue-cute.webp'
+import fishClown    from '../assets/fish-clown.webp'
+import fishPink     from '../assets/fish-pink.webp'
+import fishSimple   from '../assets/fish-simple.webp'
 import '../App.css'
 
 const NAV_BUTTONS = [
@@ -291,11 +294,46 @@ function SeaPlants() {
   )
 }
 
+// ── Background fish ──
+const BG_FISH_IMGS = [fishBlueCute, fishClown, fishPink, fishSimple]
+
+function BackgroundFish() {
+  const fish = useMemo(() => Array.from({ length: 10 }, (_, i) => ({
+    id: i,
+    src:     BG_FISH_IMGS[i % BG_FISH_IMGS.length],
+    top:     10 + Math.random() * 75,
+    size:    36 + Math.random() * 44,
+    dur:     18 + Math.random() * 20,
+    delay:   Math.random() * 30,
+    flipX:   true,
+    opacity: 0.13 + Math.random() * 0.15,
+  })), [])
+
+  return (
+    <div className="bg-fish-layer" aria-hidden>
+      {fish.map(f => (
+        <img
+          key={f.id}
+          src={f.src}
+          className="bg-fish-img ltr"
+          style={{
+            top: `${f.top}%`,
+            width: f.size,
+            opacity: f.opacity,
+            animationDuration: `${f.dur}s`,
+            animationDelay: `${-f.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ── Floating logo ──
 function FloatingLogo() {
   return (
     <div className="floating-logo-wrap">
-      <img src={logo} alt="FishNet" className="floating-logo-img" />
+      <span className="floating-logo-text">FishNet</span>
     </div>
   )
 }
@@ -308,6 +346,7 @@ function HeroSection() {
       <div className="spotlight-ray" aria-hidden />
       <AmbientBubbles />
       <Particles />
+      <BackgroundFish />
 
       <InteractiveFish />
 
