@@ -10,31 +10,188 @@ function alpha(template, a) {
   return template.replace('{a}', a.toFixed(2))
 }
 
-// ── Seaweed ──
+// ── Seaweed ──────────────────────────────────────────────────
+// Each plant carries: x, height, hue, sat, lightness, thick, phase, phase2,
+// speed, layer ('bg'|'mid'|'fg'), agitation, bend, particles.
+//
+// Public API:
+//   updateSeaweed(seaweeds, fishes)   — per-frame state update (call once)
+//   drawSeaweedLayer(ctx, list, layer, time) — draw plants of one layer
+//   drawSeaweed(ctx, sw, time)        — draw a single plant (sprite-aware)
+
+// Compute the spine point of a plant at parametric height t∈[0,1].
+// Combines two sine waves at different frequencies for a natural, non-uniform
+// drift, plus the per-plant bend term that fish push into.
+function seaweedPoint(sw, t, time, swayAmt, speedMul) {
+  const phase  = sw.phase
+  const phase2 = sw.phase2
+  const sp     = sw.speed * speedMul
+  const primary   = Math.sin(time * 0.0010 * sp + phase  + t * 2.4) * swayAmt
+  const secondary = Math.sin(time * 0.0017 * sp + phase2 + t * 4.1) * swayAmt * 0.32
+  // bend grows with t² so the base stays anchored and only the tip pushes
+  const bendOffset = sw.bend * t * t
+  return {
+    x: sw.x + (primary + secondary) * t + bendOffset,
+    y: WORLD.height - SEAFLOOR.height - sw.height * t,
+  }
+}
+
 function drawSeaweedCanvas(ctx, sw, time) {
-  const segs = Math.max(4, Math.floor(sw.height / 18))
-  ctx.lineWidth   = sw.thick
+  const cfg = SEAWEED.layers[sw.layer] || SEAWEED.layers.mid
+  const swayAmt = cfg.sway * (1 + sw.agitation * SEAWEED.agitationBoost)
+
+  const segs = SEAWEED.segments
+  const pts = new Array(segs + 1)
+  for (let i = 0; i <= segs; i++) {
+    pts[i] = seaweedPoint(sw, i / segs, time, swayAmt, cfg.speedMul)
+  }
+
+  ctx.save()
+  ctx.globalAlpha = cfg.alpha
+
+  // Spine — smooth Bézier through midpoints, with a vertical gradient stroke.
+  const baseY = WORLD.height - SEAFLOOR.height
+  const topY  = baseY - sw.height
+  const grad  = ctx.createLinearGradient(0, topY, 0, baseY)
+  grad.addColorStop(0, `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness + 10}%, 0.95)`)
+  grad.addColorStop(1, `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness - 14}%, 0.95)`)
+
+  if (cfg.blur > 0) {
+    ctx.shadowColor = `hsla(${sw.hue}, ${sw.sat}%, ${sw.lightness}%, 0.5)`
+    ctx.shadowBlur  = cfg.blur * 2.5
+  }
   ctx.lineCap     = 'round'
   ctx.lineJoin    = 'round'
-  ctx.strokeStyle = `hsla(${sw.hue}, ${sw.sat}%, ${SEAWEED.lightness}%, 0.82)`
+  ctx.lineWidth   = sw.thick * cfg.scale
+  ctx.strokeStyle = grad
+
   ctx.beginPath()
-  for (let i = 0; i <= segs; i++) {
-    const t    = i / segs
-    const y    = WORLD.height - SEAFLOOR.height - sw.height * t
-    const sway = Math.sin(time * 0.001 * sw.speed + sw.phase + i * 0.65) * SEAWEED.swayAmount * t
-    i === 0 ? ctx.moveTo(sw.x + sway, y) : ctx.lineTo(sw.x + sway, y)
+  ctx.moveTo(pts[0].x, pts[0].y)
+  for (let i = 1; i < segs; i++) {
+    const xc = (pts[i].x + pts[i + 1].x) / 2
+    const yc = (pts[i].y + pts[i + 1].y) / 2
+    ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
   }
+  ctx.lineTo(pts[segs].x, pts[segs].y)
   ctx.stroke()
 
-  for (let i = 1; i < segs; i += 2) {
-    const t    = i / segs
-    const y    = WORLD.height - SEAFLOOR.height - sw.height * t
-    const sway = Math.sin(time * 0.001 * sw.speed + sw.phase + i * 0.65) * SEAWEED.swayAmount * t
-    const dir  = i % 4 === 1 ? 1 : -1
+  // Fronds — soft elliptical leaves alternating sides along the spine.
+  ctx.shadowBlur = 0
+  for (let i = 2; i < segs; i += 2) {
+    const p   = pts[i]
+    const dir = (i % 4 === 0) ? 1 : -1
+    const t   = i / segs
+    const lw  = (6 + t * 3) * cfg.scale
+    const lh  = (3 + t * 1.5) * cfg.scale
     ctx.beginPath()
-    ctx.ellipse(sw.x + sway + dir * 8, y - 4, 8, 4, dir * 0.4, 0, Math.PI * 2)
-    ctx.fillStyle = `hsla(${sw.hue}, ${sw.sat}%, ${SEAWEED.lightness - 7}%, 0.55)`
+    ctx.ellipse(p.x + dir * 6, p.y - 2, lw, lh, dir * (0.3 + t * 0.25), 0, Math.PI * 2)
+    ctx.fillStyle = `hsla(${sw.hue + 6}, ${sw.sat}%, ${sw.lightness - 4}%, ${SEAWEED.frondAlpha})`
     ctx.fill()
+  }
+
+  // Shimmer — brief bright halo when a fish recently brushed past.
+  if (sw.agitation > 0.18) {
+    ctx.globalAlpha = cfg.alpha * sw.agitation * 0.45
+    ctx.lineWidth   = sw.thick * cfg.scale * 2.4
+    ctx.strokeStyle = `hsla(${sw.hue + 18}, 70%, 78%, 0.55)`
+    ctx.shadowColor = `hsla(${sw.hue + 18}, 90%, 72%, 0.85)`
+    ctx.shadowBlur  = 14
+    ctx.beginPath()
+    ctx.moveTo(pts[0].x, pts[0].y)
+    for (let i = 1; i < segs; i++) {
+      const xc = (pts[i].x + pts[i + 1].x) / 2
+      const yc = (pts[i].y + pts[i + 1].y) / 2
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
+    }
+    ctx.lineTo(pts[segs].x, pts[segs].y)
+    ctx.stroke()
+  }
+
+  ctx.restore()
+
+  // Drift particles
+  if (sw.particles && sw.particles.length) drawSeaweedParticles(ctx, sw)
+}
+
+function drawSeaweedParticles(ctx, sw) {
+  const tmpl = SEAWEED.particles.color
+  ctx.save()
+  for (let i = sw.particles.length - 1; i >= 0; i--) {
+    const p = sw.particles[i]
+    p.life -= 0.012
+    if (p.life <= 0) { sw.particles.splice(i, 1); continue }
+    p.y -= SEAWEED.particles.rise
+    p.x += p.drift
+    const a = Math.max(0, Math.min(1, p.life)) * 0.7
+    ctx.fillStyle = tmpl.replace('{a}', a.toFixed(2))
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+// Per-frame state update. Cheap O(plants × fishes) — fine for typical counts;
+// only mid/fg layers do the proximity check so bg is effectively free.
+export function updateSeaweed(seaweeds, fishes) {
+  const baseY = WORLD.height - SEAFLOOR.height
+  for (let s = 0; s < seaweeds.length; s++) {
+    const sw  = seaweeds[s]
+    const cfg = SEAWEED.layers[sw.layer] || SEAWEED.layers.mid
+
+    sw.agitation *= SEAWEED.agitationDecay
+    sw.bend      *= SEAWEED.bendEase
+
+    if (cfg.reactRadius > 0 && fishes && fishes.length) {
+      const swMidY = baseY - sw.height * 0.55
+      let strongest = 0
+      let pushDir   = 0
+      for (let f = 0; f < fishes.length; f++) {
+        const fish = fishes[f]
+        if (!fish) continue
+        const dx = fish.x - sw.x
+        const dy = fish.y - swMidY
+        const d  = Math.hypot(dx, dy)
+        if (d < cfg.reactRadius) {
+          const inf = 1 - d / cfg.reactRadius
+          if (inf > strongest) {
+            strongest = inf
+            // sign(dx) — if fish is to the right, push plant left, vice versa.
+            // small epsilon avoids snapping when fish is exactly overhead.
+            pushDir = -(dx >= 0 ? 1 : -1) * inf
+          }
+        }
+      }
+      if (strongest > sw.agitation) sw.agitation = strongest
+      sw.bend += pushDir * cfg.reactStrength * 0.18
+      const cap = cfg.reactStrength
+      if (sw.bend >  cap) sw.bend =  cap
+      if (sw.bend < -cap) sw.bend = -cap
+    }
+
+    // Emit particles when agitated
+    const pcfg = SEAWEED.particles
+    if (sw.agitation > pcfg.emitThreshold && Math.random() < pcfg.emitChance) {
+      if (sw.particles.length >= pcfg.maxPerPlant) sw.particles.shift()
+      sw.particles.push({
+        x:     sw.x + (Math.random() - 0.5) * 16,
+        y:     baseY - sw.height * (0.35 + Math.random() * 0.55),
+        r:     1.2 + Math.random() * 1.6,
+        drift: (Math.random() - 0.5) * 0.35,
+        life:  1.0,
+      })
+    }
+  }
+}
+
+// Draw all plants belonging to a single depth layer.
+export function drawSeaweedLayer(ctx, seaweeds, layer, time) {
+  for (let i = 0; i < seaweeds.length; i++) {
+    const sw = seaweeds[i]
+    if (sw.layer !== layer) continue
+    ctx.save()
+    drawSeaweed(ctx, sw, time)
+    ctx.restore()
   }
 }
 
@@ -42,7 +199,7 @@ export function drawSeaweed(ctx, sw, time) {
   if (SPRITES.seaweed) {
     const h = sw.height
     ctx.save()
-    ctx.translate(sw.x, WORLD.height - SEAFLOOR.height)
+    ctx.translate(sw.x + (sw.bend || 0), WORLD.height - SEAFLOOR.height)
     ctx.drawImage(SPRITES.seaweed, -h * 0.3, -h, h * 0.6, h)
     ctx.restore()
     return
@@ -221,14 +378,32 @@ export function drawBorder(ctx, W, H) {
 export function generateDecorations() {
   const { width: W, height: H } = WORLD
 
+  const layerKeys = Object.keys(SEAWEED.layers)
+  const layerWeights = layerKeys.map(k => SEAWEED.layers[k].weight)
+  const totalWeight  = layerWeights.reduce((a, b) => a + b, 0)
+  function pickLayer() {
+    let r = Math.random() * totalWeight
+    for (let i = 0; i < layerKeys.length; i++) {
+      r -= layerWeights[i]
+      if (r <= 0) return layerKeys[i]
+    }
+    return layerKeys[layerKeys.length - 1]
+  }
+
   const seaweed = Array.from({ length: SEAWEED.count }, () => ({
-    x:      40 + Math.random() * (W - 80),
-    height: SEAWEED.heightMin + Math.random() * (SEAWEED.heightMax - SEAWEED.heightMin),
-    phase:  Math.random() * Math.PI * 2,
-    speed:  0.6 + Math.random() * 0.8,
-    hue:    SEAWEED.hueMin + Math.random() * (SEAWEED.hueMax - SEAWEED.hueMin),
-    sat:    SEAWEED.satMin + Math.random() * (SEAWEED.satMax - SEAWEED.satMin),
-    thick:  SEAWEED.thickMin + Math.random() * (SEAWEED.thickMax - SEAWEED.thickMin),
+    x:         40 + Math.random() * (W - 80),
+    height:    SEAWEED.heightMin + Math.random() * (SEAWEED.heightMax - SEAWEED.heightMin),
+    phase:     Math.random() * Math.PI * 2,
+    phase2:    Math.random() * Math.PI * 2,
+    speed:     0.6 + Math.random() * 0.8,
+    hue:       SEAWEED.hueMin   + Math.random() * (SEAWEED.hueMax   - SEAWEED.hueMin),
+    sat:       SEAWEED.satMin   + Math.random() * (SEAWEED.satMax   - SEAWEED.satMin),
+    lightness: SEAWEED.lightMin + Math.random() * (SEAWEED.lightMax - SEAWEED.lightMin),
+    thick:     SEAWEED.thickMin + Math.random() * (SEAWEED.thickMax - SEAWEED.thickMin),
+    layer:     pickLayer(),
+    agitation: 0,
+    bend:      0,
+    particles: [],
   }))
 
   const coral = Array.from({ length: CORAL.count }, () => ({

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { WORLD, MOVEMENT } from '../aquarium/assets'
-import { generateDecorations, drawBackground, drawBorder, drawSeaweed, drawCoral, drawBubble } from '../aquarium/draw'
+import { generateDecorations, drawBackground, drawBorder, drawSeaweedLayer, updateSeaweed, drawCoral, drawBubble } from '../aquarium/draw'
 import { ref, set, onValue, remove, onDisconnect } from 'firebase/database'
 import { loadProfile } from '../lib/profile'
 import { getSession } from '../lib/auth'
@@ -226,8 +226,17 @@ export default function EventPage() {
         ctx.translate(-(cam.x | 0), -(cam.y | 0))
 
         drawBackground(ctx, WORLD_W, WORLD_H, ts)
-        for (const c  of DECO.coral)   { ctx.save(); drawCoral(ctx, c);        ctx.restore() }
-        for (const sw of DECO.seaweed) { ctx.save(); drawSeaweed(ctx, sw, ts); ctx.restore() }
+
+        // Update seaweed agitation/bend from current fish positions, then draw
+        // bg layer behind coral so distant plants read as backdrop.
+        updateSeaweed(DECO.seaweed, [player, ...others])
+        drawSeaweedLayer(ctx, DECO.seaweed, 'bg', ts)
+
+        for (const c  of DECO.coral)   { ctx.save(); drawCoral(ctx, c); ctx.restore() }
+
+        // Midground seaweed sits between coral and fish.
+        drawSeaweedLayer(ctx, DECO.seaweed, 'mid', ts)
+
         for (const b  of DECO.bubbles) { drawBubble(ctx, b, ts) }
         drawBorder(ctx, WORLD_W, WORLD_H)
 
@@ -248,6 +257,10 @@ export default function EventPage() {
         // Player fish on top
         drawFish(ctx, player)
         drawNameplate(ctx, player)
+
+        // Foreground seaweed renders after fish so close-up plants pass in
+        // front of swimmers, completing the parallax effect.
+        drawSeaweedLayer(ctx, DECO.seaweed, 'fg', ts)
 
         ctx.restore()
         animId = requestAnimationFrame(loop)

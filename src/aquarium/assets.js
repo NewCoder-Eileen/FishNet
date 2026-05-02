@@ -55,18 +55,51 @@ export const SEAFLOOR = {
 }
 
 // ── Seaweed ──
+// Layered seaweed system: each plant is assigned to a depth layer with its own
+// scale, opacity, blur, sway range, and fish-reactivity. Tune values here —
+// drawing logic in draw.js reads everything from this config.
 export const SEAWEED = {
-  count:      55,
-  hueMin:     130,   // green
-  hueMax:     190,   // teal
-  satMin:     45,
-  satMax:     70,
-  lightness:  55,
+  count: 75,
+
+  // Depth layers. `weight` controls how many plants land in each layer.
+  // bg = soft/distant, mid = main body, fg = sharp/in front of fish.
+  layers: {
+    bg:  { weight: 0.40, scale: 0.78, alpha: 0.42, sway: 11, speedMul: 0.65, blur: 3, reactRadius:   0, reactStrength:  0 },
+    mid: { weight: 0.40, scale: 1.00, alpha: 0.85, sway: 17, speedMul: 1.00, blur: 0, reactRadius: 100, reactStrength: 14 },
+    fg:  { weight: 0.20, scale: 1.18, alpha: 1.00, sway: 23, speedMul: 1.25, blur: 0, reactRadius: 135, reactStrength: 22 },
+  },
+
+  // Color range — kept desaturated so plants read as ambient, not loud.
+  hueMin:     135,   // green
+  hueMax:     185,   // teal
+  satMin:     32,
+  satMax:     58,
+  lightMin:   38,
+  lightMax:   56,
+
+  // Geometry
   thickMin:   3,
   thickMax:   7,
-  heightMin:  50,
-  heightMax:  135,
-  swayAmount: 16,
+  heightMin:  60,
+  heightMax:  170,
+  segments:   14,    // curve resolution
+
+  // Fish interaction
+  agitationDecay: 0.94,  // per-frame decay of "I was just disturbed" state
+  bendEase:       0.85,  // per-frame ease-back of horizontal bend
+  agitationBoost: 1.6,   // sway multiplier at full agitation
+
+  // Frond/leaf accents
+  frondAlpha: 0.55,
+
+  // Drift particles emitted around agitated plants
+  particles: {
+    maxPerPlant: 5,
+    emitChance:  0.18,    // per frame, when agitation > emitThreshold
+    emitThreshold: 0.35,
+    rise:        0.55,    // px/frame
+    color:       'rgba(210, 240, 235, {a})',
+  },
 }
 
 // ── Coral ──
