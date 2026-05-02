@@ -92,164 +92,178 @@ export default function EventPage() {
 
   useEffect(() => {
     const canvas = canvasRef.current
+    if (!canvas) {
+      console.error('Canvas ref not available')
+      return
+    }
     const ctx    = canvas.getContext('2d')
-
-    const me          = loadProfile()
-    const style       = getStyle(me.fish?.styleId)
-    const myHue       = style.hue
-    const myAccessories = {
-      hat:     me.fish?.hat     || 'none',
-      glasses: me.fish?.glasses || 'none',
-      extra:   me.fish?.extra   || 'none',
+    if (!ctx) {
+      console.error('Could not get canvas context')
+      return
     }
 
-    const myId = getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`
+    try {
+      const me          = loadProfile()
+      const style       = getStyle(me.fish?.styleId)
+      const myHue       = style.hue
+      const myAccessories = {
+        hat:     me.fish?.hat     || 'none',
+        glasses: me.fish?.glasses || 'none',
+        extra:   me.fish?.extra   || 'none',
+      }
 
-    const state = {
-      player: {
-        x: WORLD_W / 2, y: WORLD_H / 2,
-        vx: 0, vy: 0, angle: 0, tailPhase: 0,
-        hue: myHue, scale: 1.15,
-        accessories: myAccessories,
-        name:      me.name      || 'You',
-        interests: me.interests || [],
-        goals:     me.goals     || [],
-      },
-      others: [],
-      cam:  { x: WORLD_W / 2 - window.innerWidth / 2, y: WORLD_H / 2 - window.innerHeight / 2 },
-      keys: {},
-    }
+      const myId = getSession()?.username || `fish-${Math.random().toString(36).slice(2, 7)}`
+      console.log('EventPage initialized with myId:', myId, 'code:', code)
 
-    // ── Firebase real-time presence ──
-    const playerRef = ref(db, `events/${code}/${myId}`)
-    onDisconnect(playerRef).remove()
+      const state = {
+        player: {
+          x: WORLD_W / 2, y: WORLD_H / 2,
+          vx: 0, vy: 0, angle: 0, tailPhase: 0,
+          hue: myHue, scale: 1.15,
+          accessories: myAccessories,
+          name:      me.name      || 'You',
+          interests: me.interests || [],
+          goals:     me.goals     || [],
+        },
+        others: [],
+        cam:  { x: WORLD_W / 2 - window.innerWidth / 2, y: WORLD_H / 2 - window.innerHeight / 2 },
+        keys: {},
+      }
 
-    const broadcastId = setInterval(() => {
-      set(playerRef, {
-        name:        state.player.name,
-        hue:         state.player.hue,
-        accessories: state.player.accessories,
-        x:           Math.round(state.player.x),
-        y:           Math.round(state.player.y),
-        angle:       state.player.angle,
-        scale:       state.player.scale,
-        interests:   state.player.interests,
-        goals:       state.player.goals,
-      })
-    }, 100)
+      // ── Firebase real-time presence ──
+      const playerRef = ref(db, `events/${code}/${myId}`)
+      onDisconnect(playerRef).remove()
 
-    const eventRef = ref(db, `events/${code}`)
-    const unsub = onValue(eventRef, snapshot => {
-      const data = snapshot.val() || {}
-      for (const [id, val] of Object.entries(data)) {
-        if (id === myId) continue
-        const idx = state.others.findIndex(o => o.id === id)
-        if (idx >= 0) {
-          Object.assign(state.others[idx], val)
-        } else {
-          state.others.push({ ...val, id, tailPhase: Math.random() * Math.PI * 2, seed: Math.random() * 1000 })
+      const broadcastId = setInterval(() => {
+        set(playerRef, {
+          name:        state.player.name,
+          hue:         state.player.hue,
+          accessories: state.player.accessories,
+          x:           Math.round(state.player.x),
+          y:           Math.round(state.player.y),
+          angle:       state.player.angle,
+          scale:       state.player.scale,
+          interests:   state.player.interests,
+          goals:       state.player.goals,
+        }).catch(err => console.error('Firebase write error:', err))
+      }, 100)
+
+      const eventRef = ref(db, `events/${code}`)
+      const unsub = onValue(eventRef, snapshot => {
+        const data = snapshot.val() || {}
+        for (const [id, val] of Object.entries(data)) {
+          if (id === myId) continue
+          const idx = state.others.findIndex(o => o.id === id)
+          if (idx >= 0) {
+            Object.assign(state.others[idx], val)
+          } else {
+            state.others.push({ ...val, id, tailPhase: Math.random() * Math.PI * 2, seed: Math.random() * 1000 })
+          }
         }
-      }
-      for (let i = state.others.length - 1; i >= 0; i--) {
-        if (!data[state.others[i].id]) state.others.splice(i, 1)
-      }
-    })
-
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
-    resize()
-    window.addEventListener('resize', resize)
-
-    function onKeyDown(e) {
-      state.keys[e.key] = true
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault()
-    }
-    function onKeyUp(e) { state.keys[e.key] = false }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup',   onKeyUp)
-
-    let animId
-
-    function loop(ts) {
-      const { player, others, cam, keys } = state
-      const W = canvas.width, H = canvas.height
-
-      // ── Player input ──
-      const left  = keys['ArrowLeft']  || keys['a'] || keys['A']
-      const right = keys['ArrowRight'] || keys['d'] || keys['D']
-      const up    = keys['ArrowUp']    || keys['w'] || keys['W']
-      const down  = keys['ArrowDown']  || keys['s'] || keys['S']
-
-      if (left)  player.vx -= ACCEL
-      if (right) player.vx += ACCEL
-      if (up)    player.vy -= ACCEL
-      if (down)  player.vy += ACCEL
-
-      player.vx *= FRICTION
-      player.vy *= FRICTION
-
-      const pSpd = Math.hypot(player.vx, player.vy)
-      if (pSpd > MAX_SPEED) {
-        player.vx = (player.vx / pSpd) * MAX_SPEED
-        player.vy = (player.vy / pSpd) * MAX_SPEED
-      }
-
-      player.x = Math.max(35, Math.min(WORLD_W - 35, player.x + player.vx))
-      player.y = Math.max(35, Math.min(WORLD_H - 35, player.y + player.vy))
-
-      if (pSpd > 0.15) player.angle = Math.atan2(player.vy, player.vx)
-      player.tailPhase += 0.07 + pSpd * 0.05
-
-      // Advance tail animation for other fish between network updates
-      for (const o of state.others) o.tailPhase += 0.05
-
-      // ── Camera follow ──
-      cam.x += ((player.x - W / 2) - cam.x) * 0.09
-      cam.y += ((player.y - H / 2) - cam.y) * 0.09
-      cam.x = Math.max(0, Math.min(WORLD_W - W, cam.x))
-      cam.y = Math.max(0, Math.min(WORLD_H - H, cam.y))
-
-      // ── Render ──
-      ctx.clearRect(0, 0, W, H)
-      ctx.save()
-      ctx.translate(-(cam.x | 0), -(cam.y | 0))
-
-      drawBackground(ctx, WORLD_W, WORLD_H, ts)
-      for (const c  of DECO.coral)   { ctx.save(); drawCoral(ctx, c);        ctx.restore() }
-      for (const sw of DECO.seaweed) { ctx.save(); drawSeaweed(ctx, sw, ts); ctx.restore() }
-      for (const b  of DECO.bubbles) { drawBubble(ctx, b, ts) }
-      drawBorder(ctx, WORLD_W, WORLD_H)
-
-      // Proximity bubbles between player and nearby users
-      for (const o of others) {
-        const dist = Math.hypot(player.x - o.x, player.y - o.y)
-        if (dist < PROXIMITY_R) {
-          drawProximityBubble(ctx, player, o, 1 - dist / PROXIMITY_R)
+        for (let i = state.others.length - 1; i >= 0; i--) {
+          if (!data[state.others[i].id]) state.others.splice(i, 1)
         }
+      }, err => console.error('Firebase read error:', err))
+
+      function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
+      resize()
+      window.addEventListener('resize', resize)
+
+      function onKeyDown(e) {
+        state.keys[e.key] = true
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault()
+      }
+      function onKeyUp(e) { state.keys[e.key] = false }
+      window.addEventListener('keydown', onKeyDown)
+      window.addEventListener('keyup',   onKeyUp)
+
+      let animId
+
+      function loop(ts) {
+        const { player, others, cam, keys } = state
+        const W = canvas.width, H = canvas.height
+
+        // ── Player input ──
+        const left  = keys['ArrowLeft']  || keys['a'] || keys['A']
+        const right = keys['ArrowRight'] || keys['d'] || keys['D']
+        const up    = keys['ArrowUp']    || keys['w'] || keys['W']
+        const down  = keys['ArrowDown']  || keys['s'] || keys['S']
+
+        if (left)  player.vx -= ACCEL
+        if (right) player.vx += ACCEL
+        if (up)    player.vy -= ACCEL
+        if (down)  player.vy += ACCEL
+
+        player.vx *= FRICTION
+        player.vy *= FRICTION
+
+        const pSpd = Math.hypot(player.vx, player.vy)
+        if (pSpd > MAX_SPEED) {
+          player.vx = (player.vx / pSpd) * MAX_SPEED
+          player.vy = (player.vy / pSpd) * MAX_SPEED
+        }
+
+        player.x = Math.max(35, Math.min(WORLD_W - 35, player.x + player.vx))
+        player.y = Math.max(35, Math.min(WORLD_H - 35, player.y + player.vy))
+
+        if (pSpd > 0.15) player.angle = Math.atan2(player.vy, player.vx)
+        player.tailPhase += 0.07 + pSpd * 0.05
+
+        // Advance tail animation for other fish between network updates
+        for (const o of state.others) o.tailPhase += 0.05
+
+        // ── Camera follow ──
+        cam.x += ((player.x - W / 2) - cam.x) * 0.09
+        cam.y += ((player.y - H / 2) - cam.y) * 0.09
+        cam.x = Math.max(0, Math.min(WORLD_W - W, cam.x))
+        cam.y = Math.max(0, Math.min(WORLD_H - H, cam.y))
+
+        // ── Render ──
+        ctx.clearRect(0, 0, W, H)
+        ctx.save()
+        ctx.translate(-(cam.x | 0), -(cam.y | 0))
+
+        drawBackground(ctx, WORLD_W, WORLD_H, ts)
+        for (const c  of DECO.coral)   { ctx.save(); drawCoral(ctx, c);        ctx.restore() }
+        for (const sw of DECO.seaweed) { ctx.save(); drawSeaweed(ctx, sw, ts); ctx.restore() }
+        for (const b  of DECO.bubbles) { drawBubble(ctx, b, ts) }
+        drawBorder(ctx, WORLD_W, WORLD_H)
+
+        // Proximity bubbles between player and nearby users
+        for (const o of others) {
+          const dist = Math.hypot(player.x - o.x, player.y - o.y)
+          if (dist < PROXIMITY_R) {
+            drawProximityBubble(ctx, player, o, 1 - dist / PROXIMITY_R)
+          }
+        }
+
+        // Other users' fish + nameplates
+        for (const o of others) {
+          drawFish(ctx, o)
+          drawNameplate(ctx, o)
+        }
+
+        // Player fish on top
+        drawFish(ctx, player)
+        drawNameplate(ctx, player)
+
+        ctx.restore()
+        animId = requestAnimationFrame(loop)
       }
 
-      // Other users' fish + nameplates
-      for (const o of others) {
-        drawFish(ctx, o)
-        drawNameplate(ctx, o)
-      }
-
-      // Player fish on top
-      drawFish(ctx, player)
-      drawNameplate(ctx, player)
-
-      ctx.restore()
       animId = requestAnimationFrame(loop)
-    }
-
-    animId = requestAnimationFrame(loop)
-    return () => {
-      cancelAnimationFrame(animId)
-      clearInterval(broadcastId)
-      unsub()
-      remove(playerRef)
-      window.removeEventListener('resize',  resize)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup',   onKeyUp)
+      return () => {
+        cancelAnimationFrame(animId)
+        clearInterval(broadcastId)
+        unsub()
+        remove(playerRef)
+        window.removeEventListener('resize',  resize)
+        window.removeEventListener('keydown', onKeyDown)
+        window.removeEventListener('keyup',   onKeyUp)
+      }
+    } catch (err) {
+      console.error('EventPage error:', err)
+      return () => {}
     }
   }, [])
 
