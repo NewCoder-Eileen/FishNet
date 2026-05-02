@@ -110,6 +110,7 @@ export default function Home() {
 
   function handleButtonClick(label) {
     if (label === 'Join Event') navigate('/join')
+    if (label === 'Profile')    navigate('/profile')
   }
 
   return (
