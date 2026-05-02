@@ -289,3 +289,11 @@ main {
   border-top: 1px solid rgba(160, 120, 255, 0.2);
   text-align: center;
 }
+
+/* ── 3D scene background ── */
+.scene-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}

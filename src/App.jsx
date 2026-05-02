@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { Sparkles } from '@react-three/drei'
 import './App.css'
 
 const NAV_LINKS = ['Home', 'Profile', 'Join Event', 'Connect', 'About', 'Privacy']
@@ -68,9 +70,39 @@ function Section({ className, id, children }) {
   )
 }
 
+function SceneBackground() {
+  return (
+    <div className="scene-background">
+      <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
+        {/* Soft pastel mist — distant geometry fades into lavender */}
+        <fog attach="fog" args={['#c8d8ff', 8, 22]} />
+
+        {/* Warm pink-lavender ambient */}
+        <ambientLight intensity={0.4} color="#e8d8ff" />
+        {/* Sun-through-mist from above */}
+        <directionalLight position={[2, 8, 5]} intensity={1.1} color="#fff5ff" />
+        {/* Purple rim light from below */}
+        <pointLight position={[-5, -3, -4]} intensity={0.6} color="#b48cff" />
+
+        {/* Suspended particles — bubbles / dust motes */}
+        <Sparkles
+          count={200}
+          scale={[20, 20, 20]}
+          size={3}
+          speed={0.3}
+          opacity={0.85}
+          color="#ffffff"
+        />
+
+      </Canvas>
+    </div>
+  )
+}
+
 function App() {
   return (
     <>
+      <SceneBackground />
       <Navbar />
 
       <main>
