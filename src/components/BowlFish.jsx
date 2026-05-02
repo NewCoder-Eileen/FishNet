@@ -29,8 +29,8 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
   const sizeRef   = useRef({ W: 0, H: 0 })
 
   const ACCEL = 0.48, FRICTION = 0.91, MAX_V = 4.6
-  const SEEK  = 0.18                  // food-pull strength (player ACCEL still wins)
-  const EAT_R = 14                    // bite radius in px
+  const SEEK  = 0.18
+  const EAT_R = 14
   const MAX_FOOD = 18
 
   useImperativeHandle(ref, () => ({
@@ -89,7 +89,17 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
 
     const fish = { styleId, x: W / 2, y: H * 0.45, vx: 0, vy: 0, angle: 0, tailPhase: 0, scale: 1.6 }
     const dotState = new Map()
+    const mouseTarget = { current: null }
     let raf = 0
+
+    function onBowlClick(e) {
+      const rect = canvas.getBoundingClientRect()
+      mouseTarget.current = {
+        x: (e.clientX - rect.left) * (W / rect.width),
+        y: (e.clientY - rect.top)  * (H / rect.height),
+      }
+    }
+    canvas.addEventListener('click', onBowlClick)
 
     function loop() {
       ctx.clearRect(0, 0, W, H)
@@ -105,27 +115,37 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
           p.life += 1
           if (p.life > 360) { food.splice(i, 1); continue }
         } else {
-          p.vy += 0.014        // gentle gravity
-          p.vy *= 0.985        // water drag
+          p.vy += 0.014
+          p.vy *= 0.985
           p.vx *= 0.97
           p.x  += p.vx
           p.y  += p.vy
           if (p.y >= sandTop) { p.y = sandTop; p.vy = 0; p.vx *= 0.5; p.settled = true }
           const ex = (p.x - cx) / rx, ey = (p.y - cy) / ry, er = Math.hypot(ex, ey)
-          if (er > 1) {
-            p.x = cx + (ex / er) * rx
-            p.y = cy + (ey / er) * ry
-            p.vx *= -0.3
-          }
+          if (er > 1) { p.x = cx + (ex / er) * rx; p.y = cy + (ey / er) * ry; p.vx *= -0.3 }
         }
       }
 
       // ── Player input ──
       const k = keysRef.current
-      if (k['ArrowLeft']  || k['a'] || k['A']) fish.vx -= ACCEL
-      if (k['ArrowRight'] || k['d'] || k['D']) fish.vx += ACCEL
-      if (k['ArrowUp']    || k['w'] || k['W']) fish.vy -= ACCEL
-      if (k['ArrowDown']  || k['s'] || k['S']) fish.vy += ACCEL
+      const kLeft  = k['ArrowLeft']  || k['a'] || k['A']
+      const kRight = k['ArrowRight'] || k['d'] || k['D']
+      const kUp    = k['ArrowUp']    || k['w'] || k['W']
+      const kDown  = k['ArrowDown']  || k['s'] || k['S']
+      if (kLeft)  fish.vx -= ACCEL
+      if (kRight) fish.vx += ACCEL
+      if (kUp)    fish.vy -= ACCEL
+      if (kDown)  fish.vy += ACCEL
+      if (kLeft || kRight || kUp || kDown) mouseTarget.current = null
+
+      // ── Mouse / tap target ──
+      const mt = mouseTarget.current
+      if (mt && !kLeft && !kRight && !kUp && !kDown) {
+        const dx = mt.x - fish.x, dy = mt.y - fish.y
+        const dist = Math.hypot(dx, dy)
+        if (dist < 15) { mouseTarget.current = null }
+        else { fish.vx += (dx / dist) * ACCEL; fish.vy += (dy / dist) * ACCEL }
+      }
 
       // ── Seek nearest pellet & eat on contact ──
       let nearest = null, nearestDist = Infinity, nearestIdx = -1
@@ -140,7 +160,6 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
         fish.vx += (dx / d) * SEEK
         fish.vy += (dy / d) * SEEK
         if (d < EAT_R) {
-          // sparkle on bite
           for (let s = 0; s < 4; s++) {
             sparksRef.current.push({
               x: nearest.x, y: nearest.y,
@@ -168,7 +187,7 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
       if (v > 0.15) fish.angle = Math.atan2(fish.vy, fish.vx)
       fish.tailPhase += 0.08 + v * 0.04
 
-      // ── Draw food (under fish) ──
+      // ── Draw food pellets ──
       for (const p of food) {
         const wobble = p.settled ? 0 : Math.sin((p.x + p.y) * 0.04) * 0.6
         ctx.save()
@@ -181,7 +200,7 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
 
       drawFish(ctx, fish)
 
-      // ── Sparkle particles (eat feedback) ──
+      // ── Sparkle particles ──
       const sparks = sparksRef.current
       for (let i = sparks.length - 1; i >= 0; i--) {
         const s = sparks[i]
@@ -209,8 +228,8 @@ export const BowlFish = forwardRef(function BowlFish({ styleId, dots = [], onDot
 
     function onResize() { ({ W, H } = resize()) }
     window.addEventListener('resize', onResize)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize) }
+    return () => { cancelAnimationFrame(raf); canvas.removeEventListener('click', onBowlClick); window.removeEventListener('resize', onResize) }
   }, [styleId])
 
-  return <canvas ref={canvasRef} className="bowl-fish-canvas" aria-hidden />
+  return <canvas ref={canvasRef} className="bowl-fish-canvas" style={{ cursor: 'pointer' }} aria-hidden />
 })

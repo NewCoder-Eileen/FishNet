@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, LogOut, Menu, User } from 'lucide-react'
+import { ChevronDown, ChevronRight, LogOut, Menu, User, MessageCircle } from 'lucide-react'
 import { isLoggedIn, logout, getSession } from '../lib/auth'
+import { useUnreadDmCount } from '../lib/chat'
 
 const ACCENT = '#7c5cd8'
 
@@ -62,9 +63,10 @@ export default function Navbar() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const accountWrapRef = useRef(null)
-  const loggedIn = isLoggedIn()
-  const session  = loggedIn ? getSession() : null
-  const initial  = session?.username?.[0]?.toUpperCase() || '?'
+  const loggedIn  = isLoggedIn()
+  const session   = loggedIn ? getSession() : null
+  const initial   = session?.username?.[0]?.toUpperCase() || '?'
+  const unreadDms = useUnreadDmCount()
 
   function go(href) { setOpen(false); setAccountOpen(false); navigate(href) }
   function handleLogout() { setOpen(false); setAccountOpen(false); logout(); navigate('/login') }
@@ -118,6 +120,19 @@ export default function Navbar() {
 
           {/* Right cluster */}
           <div className="ml-auto flex items-center gap-2">
+            {loggedIn && (
+              <button
+                onClick={() => go('/messages')}
+                className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/30 transition-colors"
+                aria-label="Messages"
+                title="Messages"
+              >
+                <MessageCircle size={18} className="text-neutral-700" />
+                {unreadDms > 0 && (
+                  <span className="nav-notif-badge">{unreadDms > 9 ? '9+' : unreadDms}</span>
+                )}
+              </button>
+            )}
             {loggedIn ? (
               <div className="relative" ref={accountWrapRef}>
                 <button

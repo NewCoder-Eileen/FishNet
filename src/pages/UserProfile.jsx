@@ -1,22 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '../lib/firebase'
 import { loadProfile } from '../lib/profile'
+import { isLoggedIn } from '../lib/auth'
 import { getStyle } from '../aquarium/fishStyles'
 import { BowlFish, FishPreview } from '../components/BowlFish'
+import {
+  myUserId, getDmId,
+  sendDm, markDmRead, subscribeDmMessages,
+  sendConnectionRequest, acceptConnection, subscribeConnection,
+} from '../lib/chat'
 import seaweedA from '../assets/seaweed-a.png'
 import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
 
-const SOCIALS = [
-  { key: 'github',   label: 'GitHub'   },
-  { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'twitter',  label: 'Twitter'  },
-  { key: 'devpost',  label: 'Devpost'  },
-  { key: 'website',  label: 'Site'     },
-  { key: 'email',    label: 'Email'    },
-]
+function fmt(ts) {
+  if (!ts) return ''
+  const d = new Date(ts), now = new Date()
+  return d.toDateString() === now.toDateString()
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
 
 // Same encoding used everywhere else (auth/profiles/relations).
 function encodeKey(k) {
@@ -28,13 +33,14 @@ function prettifyKey(k) {
 }
 
 export default function UserProfile() {
-  const { username: urlParam } = useParams()
+  const { username } = useParams()
   const navigate     = useNavigate()
   const location     = useLocation()
 
-  // The URL param is the encoded user key (so emails-as-usernames don't break
-  // routing). Re-encode defensively in case anything passes a raw username.
-  const userKey      = encodeKey(urlParam)
+  // The URL param IS the encoded key (`you@gmail_com`, `eileen`, etc) — same
+  // format that auth.js / profile.js / chat.js all use. encodeKey is idempotent
+  // on already-encoded values, so this is also safe if a raw name slips through.
+  const userKey      = encodeKey(username)
 
   const seed = location.state?.user || {}
   const [profile, setProfile] = useState({
@@ -46,9 +52,23 @@ export default function UserProfile() {
     customLinks: seed.customLinks || [],
     fish:        seed.fish        || {},
   })
-  const [account,      setAccount]      = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [activePanel,  setActivePanel]  = useState(null)
+  const [account,     setAccount]     = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [activePanel, setActivePanel] = useState(null)
+
+  // DM drawer state
+  const [dmOpen,     setDmOpen]     = useState(false)
+  const [dmMessages, setDmMessages] = useState([])
+  const [dmText,     setDmText]     = useState('')
+  const dmBottomRef = useRef(null)
+  const dmInputRef  = useRef(null)
+
+  // Connection status
+  const [connStatus, setConnStatus] = useState(null)
+
+  const me     = myUserId()
+  const dmId   = me ? getDmId(me, userKey) : null
+  const isSelf = me === userKey
 
   // Load viewer's own fish style so their fish swims in the bowl
   const [myProfile, setMyProfile] = useState({})
@@ -58,14 +78,13 @@ export default function UserProfile() {
     return () => { cancelled = true }
   }, [])
   const myStyle    = getStyle(myProfile.fish?.styleId)
-
-  // Their fish style (shown statically in the id card)
   const theirStyle = getStyle(profile.fish?.styleId)
 
   // Display handle: prefer the original casing from /accounts, fall back to a
   // prettified version of the encoded key (so emails render with dots).
   const displayHandle = account?.username || prettifyKey(userKey)
 
+  // Subscribe to their profile + account
   useEffect(() => {
     const profileRef = ref(db, `profiles/${userKey}`)
     const unsubP = onValue(profileRef, snap => {
@@ -78,7 +97,57 @@ export default function UserProfile() {
     return () => { unsubP(); unsubA() }
   }, [userKey])
 
-  // Info dots — same positions as Profile.jsx but read-only
+  // Connection status
+  useEffect(() => {
+    if (!isLoggedIn() || isSelf) return
+    return subscribeConnection(userKey, setConnStatus)
+  }, [userKey, isSelf])
+
+  // DM messages when drawer is open
+  useEffect(() => {
+    if (!dmOpen || !dmId) return
+    markDmRead(dmId)
+    return subscribeDmMessages(dmId, setDmMessages)
+  }, [dmOpen, dmId])
+
+  // Scroll DM to bottom on new messages
+  useEffect(() => {
+    if (dmOpen) dmBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [dmMessages, dmOpen])
+
+  function openDm() {
+    if (!isLoggedIn()) { navigate('/login'); return }
+    setDmOpen(true)
+    setTimeout(() => dmInputRef.current?.focus(), 80)
+  }
+
+  function handleDmSend() {
+    if (!dmText.trim() || !me) return
+    sendDm(userKey, profile.name || displayHandle, dmText)
+    setDmText('')
+    dmInputRef.current?.focus()
+  }
+
+  function handleConnect() {
+    if (!isLoggedIn()) { navigate('/login'); return }
+    if (!connStatus) {
+      sendConnectionRequest(userKey, profile.name || displayHandle)
+    } else if (connStatus.status === 'received') {
+      acceptConnection(userKey)
+    }
+  }
+
+  const connectLabel = () => {
+    if (!connStatus)                    return 'Add Friend'
+    if (connStatus.status === 'sent')   return 'Request Sent'
+    if (connStatus.status === 'received') return 'Accept Request'
+    if (connStatus.status === 'accepted') return 'Connected ✓'
+    return 'Add Friend'
+  }
+
+  const connectDisabled = connStatus?.status === 'sent' || connStatus?.status === 'accepted'
+
+  // Info dots
   const DOTS = [
     { id: 'interests', label: 'Interests',   color: 'green', xPct: 0.50, yPct: 0.86 },
     { id: 'goals',     label: 'Looking For', color: 'blue',  xPct: 0.20, yPct: 0.78 },
@@ -94,14 +163,13 @@ export default function UserProfile() {
         <div className="fishbowl-shine" aria-hidden />
         <div className="fishbowl-water-line" aria-hidden />
 
-        {/* YOUR fish swims inside their bowl */}
         <BowlFish
           styleId={myStyle.id}
           dots={DOTS}
           onDotEnter={id => setActivePanel(p => p === id ? null : id)}
         />
 
-        {/* Their identity card — read-only, no edit button */}
+        {/* Their identity card */}
         <div className="bowl-id-card">
           <div className="bowl-fish-square">
             <FishPreview styleId={theirStyle.id} width={84} height={84} />
@@ -135,7 +203,7 @@ export default function UserProfile() {
           <span className="rock rock-5" />
         </div>
 
-        {/* Info dots — swim into them to read their profile */}
+        {/* Info dots */}
         {DOTS.map(d => (
           <button
             key={d.id}
@@ -181,15 +249,73 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* Bottom toolbar — Connect instead of Account */}
-        <div className="bowl-toolbar">
-          <button className="join-btn-primary" style={{ padding: '8px 24px', fontSize: 14 }}>
-            Connect
-          </button>
-        </div>
+        {/* Bottom toolbar */}
+        {!isSelf && (
+          <div className="bowl-toolbar">
+            <button
+              className={`up-connect-btn ${connStatus?.status === 'accepted' ? 'up-connected' : ''}`}
+              onClick={handleConnect}
+              disabled={connectDisabled}
+            >
+              {connectLabel()}
+            </button>
+            <button className="up-dm-btn" onClick={openDm}>
+              Message
+            </button>
+          </div>
+        )}
 
         {loading && <div className="bowl-saved-flash" style={{ background: 'rgba(100,150,255,0.15)' }}>Loading...</div>}
       </div>
+
+      {/* ── DM Drawer ── */}
+      <div className={`profile-dm-drawer ${dmOpen ? 'pdm-open' : ''}`}>
+        <div className="pdm-header">
+          <button className="pdm-back" onClick={() => setDmOpen(false)}>←</button>
+          <div className="pdm-title-row">
+            <div className="pdm-avatar">{(profile.name || displayHandle || '?')[0].toUpperCase()}</div>
+            <span className="pdm-title">@{displayHandle}</span>
+          </div>
+          <button
+            className="pdm-open-full"
+            onClick={() => navigate(`/messages?user=${userKey}&name=${encodeURIComponent(profile.name || displayHandle)}`)}
+            title="Open full messages"
+          >
+            ↗
+          </button>
+        </div>
+
+        <div className="pdm-body">
+          {dmMessages.length === 0 && (
+            <p className="pdm-empty">Say hi! Start the conversation.</p>
+          )}
+          {dmMessages.map(msg => (
+            <div key={msg.id} className={`msg-wrap ${msg.from === me ? 'msg-wrap-mine' : 'msg-wrap-theirs'}`}>
+              <div className={`msg-bubble ${msg.from === me ? 'msg-bubble-mine' : 'msg-bubble-theirs'}`}>
+                {msg.text}
+              </div>
+              <span className="msg-ts">{fmt(msg.ts)}</span>
+            </div>
+          ))}
+          <div ref={dmBottomRef} />
+        </div>
+
+        <div className="pdm-input-row">
+          <input
+            ref={dmInputRef}
+            className="pdm-input"
+            value={dmText}
+            onChange={e => setDmText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDmSend() } }}
+            placeholder={`Message @${displayHandle}…`}
+            maxLength={500}
+          />
+          <button className="pdm-send" onClick={handleDmSend} disabled={!dmText.trim()}>↑</button>
+        </div>
+      </div>
+
+      {/* Overlay backdrop for DM drawer on mobile */}
+      {dmOpen && <div className="pdm-backdrop" onClick={() => setDmOpen(false)} />}
     </div>
   )
 }

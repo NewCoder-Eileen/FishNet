@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Connect from './Connect.jsx'
 import Friends from './pages/Friends'
 import UserProfile from './pages/UserProfile'
+import Messages from './pages/Messages'
 import RequireAuth from './components/RequireAuth'
 import './App.css'
 
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/connect"     element={<RequireAuth><Connect /></RequireAuth>} />
         <Route path="/friends"     element={<RequireAuth><Friends /></RequireAuth>} />
         <Route path="/user/:username" element={<UserProfile />} />
+        <Route path="/messages"       element={<RequireAuth><Messages /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   )
