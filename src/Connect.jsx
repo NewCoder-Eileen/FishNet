@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Navbar from './components/Navbar'
+import BubbleBackground from './components/BubbleBackground'
 import './App.css'
 
 const FRIENDS = [
@@ -53,15 +54,10 @@ function Connect() {
 
   return (
     <>
+      <BubbleBackground count={16} />
       <Navbar />
       <main>
         <section className="connect-section">
-          <div className="bubble"></div>
-          <div className="bubble"></div>
-          <div className="bubble"></div>
-          <div className="bubble"></div>
-          <div className="bubble"></div>
-          <div className="bubble"></div>
           <div className="connect-container">
           <div className="connect-main">
             <h2>Connect</h2>

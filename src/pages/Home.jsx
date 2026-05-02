@@ -1,20 +1,13 @@
 import { useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import logo from '../assets/logo.png'
 import '../App.css'
 
 const NAV_BUTTONS = [
   { label: 'Profile',    graphic: null, href: '/profile'  },
   { label: 'Join Event', graphic: null, href: '/join'       },
   { label: 'Connect',    graphic: null, href: '/#connect'   },
-]
-
-// ── Placeholder boxes — swap `content` for real graphics later ──
-const PLACEHOLDER_BOXES = [
-  { id: 'box-tl', label: 'Feature A', hint: 'Replace with graphic' },
-  { id: 'box-tr', label: 'Feature B', hint: 'Replace with graphic' },
-  { id: 'box-bl', label: 'Feature C', hint: 'Replace with graphic' },
-  { id: 'box-br', label: 'Feature D', hint: 'Replace with graphic' },
 ]
 
 // ── Hooks ──
@@ -184,21 +177,7 @@ function SeaPlants() {
 function FloatingLogo() {
   return (
     <div className="floating-logo-wrap">
-      <div className="floating-logo">
-        {/* Swap this div for your <img src={logo} /> when ready */}
-        <div className="logo-placeholder-inner">Your Logo</div>
-      </div>
-    </div>
-  )
-}
-
-// ── Glassy placeholder box ──
-function PlaceholderBox({ id, label, hint }) {
-  return (
-    // To replace: swap the inner content with your <img> or component
-    <div className="glass-box" id={id}>
-      <span className="glass-box-label">{label}</span>
-      <span className="glass-box-hint">{hint}</span>
+      <img src={logo} alt="FishNet" className="floating-logo-img" />
     </div>
   )
 }
@@ -211,13 +190,8 @@ function HeroSection() {
       <AmbientBubbles />
       <Particles />
 
-      <div className="hero-grid">
-        <PlaceholderBox {...PLACEHOLDER_BOXES[0]} />
+      <div className="hero-center">
         <FloatingLogo />
-        <PlaceholderBox {...PLACEHOLDER_BOXES[1]} />
-        <PlaceholderBox {...PLACEHOLDER_BOXES[2]} />
-        <div className="hero-grid-center-bottom" />
-        <PlaceholderBox {...PLACEHOLDER_BOXES[3]} />
       </div>
 
       <SeaPlants />

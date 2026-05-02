@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import BubbleBackground from '../components/BubbleBackground'
 import '../App.css'
 
 function getEvents() {
@@ -39,11 +40,7 @@ export default function JoinEvent() {
     const trimmed = joinCode.trim().toUpperCase()
     if (!trimmed) { setJoinError('Enter a code first'); return }
     const event = getEvent(trimmed)
-    if (event) {
-      navigate(`/event/${trimmed}`, { state: { name: event.name } })
-    } else {
-      setJoinError('No event found — check the code and try again.')
-    }
+    navigate(`/event/${trimmed}`, { state: { name: event?.name || trimmed } })
   }
 
   function handleCreate() {
@@ -63,6 +60,7 @@ export default function JoinEvent() {
 
   return (
     <div className="join-page">
+      <BubbleBackground count={14} />
       <Navbar />
       <button className="join-back" onClick={() => navigate('/')}>← Back</button>
 

@@ -3,7 +3,9 @@ import Home from './pages/Home'
 import JoinEvent from './pages/JoinEvent'
 import EventPage from './pages/EventPage'
 import Profile from './pages/Profile'
+import Login from './pages/Login'
 import Connect from './Connect.jsx'
+import RequireAuth from './components/RequireAuth'
 import './App.css'
 
 export default function App() {
@@ -11,10 +13,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/"            element={<Home />} />
+        <Route path="/login"       element={<Login />} />
         <Route path="/profile"     element={<Profile />} />
-        <Route path="/join"        element={<JoinEvent />} />
-        <Route path="/event/:code" element={<EventPage />} />
-        <Route path="/connect"     element={<Connect />} />
+        <Route path="/join"        element={<RequireAuth><JoinEvent /></RequireAuth>} />
+        <Route path="/event/:code" element={<RequireAuth><EventPage /></RequireAuth>} />
+        <Route path="/connect"     element={<RequireAuth><Connect /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   )
