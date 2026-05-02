@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadProfile, saveProfile } from '../lib/profile'
 import { getSession, changeUsername, changeEmail, login, getAccountInfo } from '../lib/auth'
-import { getStyle, drawFish } from '../aquarium/fishStyles'
+import { getStyle } from '../aquarium/fishStyles'
 import FishBowl from '../components/FishBowl'
+import { BowlFish, FishPreview } from '../components/BowlFish'
 import seaweedA from '../assets/seaweed-a.png'
 import seaweedB from '../assets/seaweed-b.png'
 import '../App.css'
@@ -70,177 +71,6 @@ function TagInput({ value, onChange, placeholder }) {
   )
 }
 
-// ── Static fish preview (used in the bowl id-card square) ──
-function FishPreview({ styleId, width = 84, height = 84 }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    canvas.width  = width  * dpr
-    canvas.height = height * dpr
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-    const style = getStyle(styleId)
-    const fish = {
-      styleId: style.id,
-      x: width / 2, y: height / 2,
-      angle: 0, tailPhase: 0,
-      scale: Math.min(width, height) / 75,
-    }
-    let raf = 0
-    function loop(ts) {
-      ctx.clearRect(0, 0, width, height)
-      fish.tailPhase = ts * 0.005
-      drawFish(ctx, fish)
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [styleId, width, height])
-  return <canvas ref={ref} style={{ width, height, display: 'block' }} aria-hidden />
-}
-
-// ── Single fish swimming inside the bowl, controlled by WASD / arrow keys ──
-// Props:
-//   dots:          [{ id, xPct, yPct, hitR }]  — proximity targets in canvas space
-//   onDotEnter(id) — fired once per swim-in event for each dot
-//   hintRef        — DOM element that we position right above the fish
-function BowlFish({ styleId, dots = [], onDotEnter, hintRef }) {
-  const canvasRef = useRef(null)
-  const keysRef   = useRef({})
-
-  // Tunables
-  const ACCEL    = 0.48
-  const FRICTION = 0.91
-  const MAX_V    = 4.6
-
-  useEffect(() => {
-    function onKeyDown(e) {
-      const t = e.target
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      keysRef.current[e.key] = true
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault()
-    }
-    function onKeyUp(e) { keysRef.current[e.key] = false }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup',   onKeyUp)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup',   onKeyUp)
-    }
-  }, [])
-
-  // Latest props in a ref so the loop reads fresh values without rebooting.
-  const propsRef = useRef({ dots, onDotEnter, hintRef })
-  useEffect(() => { propsRef.current = { dots, onDotEnter, hintRef } }, [dots, onDotEnter, hintRef])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-
-    function resize() {
-      const W = canvas.clientWidth
-      const H = canvas.clientHeight
-      canvas.width  = W * dpr
-      canvas.height = H * dpr
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      return { W, H }
-    }
-    let { W, H } = resize()
-
-    const fish = {
-      styleId,
-      x: W / 2, y: H * 0.45,
-      vx: 0, vy: 0,
-      angle: 0,
-      tailPhase: 0,
-      scale: 1.6,
-    }
-    const dotState = new Map()   // id → { inside: bool }
-
-    let raf = 0
-    function loop() {
-      ctx.clearRect(0, 0, W, H)
-
-      const k = keysRef.current
-      const left  = k['ArrowLeft']  || k['a'] || k['A']
-      const right = k['ArrowRight'] || k['d'] || k['D']
-      const up    = k['ArrowUp']    || k['w'] || k['W']
-      const down  = k['ArrowDown']  || k['s'] || k['S']
-
-      if (left)  fish.vx -= ACCEL
-      if (right) fish.vx += ACCEL
-      if (up)    fish.vy -= ACCEL
-      if (down)  fish.vy += ACCEL
-
-      fish.vx *= FRICTION
-      fish.vy *= FRICTION
-
-      const v = Math.hypot(fish.vx, fish.vy)
-      if (v > MAX_V) { fish.vx = (fish.vx / v) * MAX_V; fish.vy = (fish.vy / v) * MAX_V }
-
-      fish.x += fish.vx
-      fish.y += fish.vy
-
-      // Keep inside an inset ellipse
-      const cx = W / 2, cy = H / 2
-      const rx = W * 0.46, ry = H * 0.46
-      const ex = (fish.x - cx) / rx
-      const ey = (fish.y - cy) / ry
-      const er = Math.hypot(ex, ey)
-      if (er > 1) {
-        fish.x = cx + (ex / er) * rx
-        fish.y = cy + (ey / er) * ry
-        const nx = ex / er, ny = ey / er
-        const dotV = fish.vx * nx + fish.vy * ny
-        if (dotV > 0) {
-          fish.vx -= dotV * nx
-          fish.vy -= dotV * ny
-          fish.vx *= 0.5; fish.vy *= 0.5
-        }
-      }
-
-      if (v > 0.15) fish.angle = Math.atan2(fish.vy, fish.vx)
-      fish.tailPhase += 0.08 + v * 0.04
-
-      drawFish(ctx, fish)
-
-      // Dot proximity — fire onDotEnter once per swim-in
-      const pp = propsRef.current
-      for (const d of pp.dots) {
-        const dx = d.xPct * W - fish.x
-        const dy = d.yPct * H - fish.y
-        const dist = Math.hypot(dx, dy)
-        const r = d.hitR ?? 36
-        const wasInside = dotState.get(d.id)?.inside || false
-        const inside = dist < r
-        if (inside && !wasInside) pp.onDotEnter?.(d.id)
-        dotState.set(d.id, { inside })
-      }
-
-      // Position the floating hint directly above the fish (DOM-only update,
-      // no React re-render).
-      const hintEl = pp.hintRef?.current
-      if (hintEl) {
-        hintEl.style.left = `${fish.x}px`
-        hintEl.style.top  = `${fish.y - 44}px`
-      }
-
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-
-    function onResize() { ({ W, H } = resize()) }
-    window.addEventListener('resize', onResize)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize) }
-  }, [styleId])
-
-  return <canvas ref={canvasRef} className="bowl-fish-canvas" aria-hidden />
-}
 
 // ── Generic section editor modal ──
 function SectionModal({ title, onClose, onSave, children }) {
@@ -443,8 +273,13 @@ export default function Profile() {
   const [fishEditOpen, setFishEditOpen] = useState(false)
   const [accountOpen, setAccountOpen]   = useState(false)
   const [savedFlash, setSavedFlash]     = useState(false)
-  const hintRef = useRef(null)
+  const hintRef      = useRef(null)
   const lastDotEnterRef = useRef(0)
+  const profileRef   = useRef(profile)   // always mirrors latest profile
+
+  // Keep ref in sync every render — zero cost, guarantees handleFishSave
+  // always reads the up-to-date value regardless of closure age.
+  profileRef.current = profile
 
   // Open the right modal when the fish swims into a dot. Throttle so we don't
   // re-open immediately if the user closes and lingers.
@@ -476,12 +311,15 @@ export default function Profile() {
     setOpenSection(null)
   }
 
-  // Fish picker reads/writes directly to live profile (no modal-draft roundtrip).
   function updateFish(key, value) {
-    setProfile(p => ({ ...p, fish: { ...(p.fish || {}), [key]: value } }))
+    setProfile(p => {
+      const next = { ...p, fish: { ...(p.fish || {}), [key]: value } }
+      profileRef.current = next
+      return next
+    })
   }
   function handleFishSave() {
-    saveProfile(profile)
+    saveProfile(profileRef.current)
     setFishEditOpen(false)
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 1800)
