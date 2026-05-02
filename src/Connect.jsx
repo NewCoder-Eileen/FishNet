@@ -172,6 +172,7 @@ function Connect() {
         )}
       </section>
     </main>
+  </>
   )
 }
 
