@@ -1,7 +1,8 @@
-## What is FishNet?
+## What is FishNet? 🖥️🐠
 
 FishNet is an approachable, networking platform designed to help people overcome the social anxiety of "reaching out" during team-based events.
 By blending 3D web design with detailed personal interest profiles, it moves away from superficial "follower counts" to help users find meaningful collaborators for hackathons, game jams, and group projects. In short: it’s a tool for turning digital strangers into compatible teammates.
+
 We believe that stunning and functional websites combined with use of 3D modelling is the future of web design!
 
 FishNet is made in 24 hours and won the Women In Tech award for Eureka Hacks 2026.
@@ -17,7 +18,7 @@ FishNet’s focus isn’t on artificial followers and connections, but to rather
 
 ## What is it made with?
 FishNet is made with love and determination using React.js, Three.js, Tailwind.css, Blender, and Firebase.
-Drawings of fish and seaweed were hand drawn in Procreate, and 3D fish was made in Blender!
+Drawings of fish and seaweed were hand-drawn in Procreate, and 3D fish was made in Blender!
 
 ## Questions?
 Contact me: eileenbusiness123@gmail.com
