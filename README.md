@@ -17,7 +17,7 @@ FishNet’s focus isn’t on artificial followers and connections, but to rather
 
 ## What is it made with?
 FishNet is made with love and determination using React.js, Three.js, Tailwind.css, Blender, and Firebase.
-Drawings of fish and seaweed were hand drawm in Procreate, and 3D fish was made in Blender!
+Drawings of fish and seaweed were hand drawn in Procreate, and 3D fish was made in Blender!
 
 ## Questions?
 Contact me: eileenbusiness123@gmail.com
